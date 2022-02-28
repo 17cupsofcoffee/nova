@@ -1,8 +1,6 @@
 use glam::{Mat3, Vec2};
 
-use crate::graphics::{
-    Graphics, Mesh, Rectangle, RenderPass, Shader, Target, Texture, Transform, Vertex,
-};
+use crate::graphics::{Graphics, Mesh, Rectangle, RenderPass, Shader, Target, Texture, Vertex};
 
 use super::{Color, SpriteFont};
 
@@ -45,6 +43,44 @@ void main() {
     o_color = texture(u_texture, v_uv) * v_color;
 }
 ";
+
+pub struct DrawParams {
+    color: Color,
+    origin: Vec2,
+    scale: Vec2,
+    rotation: f32,
+}
+
+impl DrawParams {
+    pub fn new() -> DrawParams {
+        DrawParams {
+            color: Color::WHITE,
+            origin: Vec2::ZERO,
+            scale: Vec2::ONE,
+            rotation: 0.0,
+        }
+    }
+
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn origin(mut self, origin: Vec2) -> Self {
+        self.origin = origin;
+        self
+    }
+
+    pub fn scale(mut self, scale: Vec2) -> Self {
+        self.scale = scale;
+        self
+    }
+
+    pub fn rotation(mut self, rotation: f32) -> Self {
+        self.rotation = rotation;
+        self
+    }
+}
 
 struct Batch {
     indices: usize,
@@ -127,53 +163,50 @@ impl Batcher {
         });
     }
 
-    pub fn rect(&mut self, rect: Rectangle, color: Color) {
-        self.push_sprite(None, Rectangle::ZERO, rect, color, Vec2::ZERO, 0.0);
+    pub fn rect(&mut self, rect: Rectangle, params: DrawParams) {
+        self.push_sprite(None, Rectangle::ZERO, rect, params);
     }
 
-    pub fn texture(&mut self, texture: &Texture, transform: impl Into<Transform>) {
-        self.subtexture(
-            texture,
-            Rectangle::new(0.0, 0.0, texture.width() as f32, texture.height() as f32),
-            transform,
-        )
-    }
-
-    pub fn subtexture(
-        &mut self,
-        texture: &Texture,
-        region: Rectangle,
-        transform: impl Into<Transform>,
-    ) {
-        let transform = transform.into();
-
+    pub fn texture(&mut self, texture: &Texture, position: Vec2, params: DrawParams) {
         self.push_sprite(
             Some(texture),
+            Rectangle::new(0.0, 0.0, 1.0, 1.0),
             Rectangle::new(
-                region.x / texture.width() as f32,
-                region.y / texture.height() as f32,
-                region.width / texture.width() as f32,
-                region.height / texture.height() as f32,
+                position.x,
+                position.y,
+                texture.width() as f32,
+                texture.height() as f32,
             ),
-            Rectangle::new(
-                transform.position.x,
-                transform.position.y,
-                region.width * transform.scale.x,
-                region.height * transform.scale.y,
-            ),
-            Color::WHITE,
-            transform.origin,
-            transform.rotation,
+            params,
         );
     }
 
-    // TODO: This API kinda sucks and duplicates a load of code, figure out a nicer one
-    pub fn subtexture_rect(
+    pub fn texture_region(
+        &mut self,
+        texture: &Texture,
+        position: Vec2,
+        src: Rectangle,
+        params: DrawParams,
+    ) {
+        self.push_sprite(
+            Some(texture),
+            Rectangle::new(
+                src.x / texture.width() as f32,
+                src.y / texture.height() as f32,
+                src.width / texture.width() as f32,
+                src.height / texture.height() as f32,
+            ),
+            Rectangle::new(position.x, position.y, src.width, src.height),
+            params,
+        );
+    }
+
+    pub fn texture_dest(
         &mut self,
         texture: &Texture,
         src: Rectangle,
         dest: Rectangle,
-        color: Color,
+        params: DrawParams,
     ) {
         self.push_sprite(
             Some(texture),
@@ -184,9 +217,7 @@ impl Batcher {
                 src.height / texture.height() as f32,
             ),
             dest,
-            color,
-            Vec2::ZERO,
-            0.0,
+            params,
         );
     }
 
@@ -209,10 +240,11 @@ impl Batcher {
                     offset.x += kerning;
                 }
 
-                self.subtexture(
+                self.texture_region(
                     font.texture(),
-                    glyph.uv,
                     (position + offset + glyph.offset).floor(),
+                    glyph.uv,
+                    DrawParams::new(),
                 );
 
                 offset.x += glyph.advance;
@@ -227,25 +259,26 @@ impl Batcher {
         texture: Option<&Texture>,
         source: Rectangle,
         dest: Rectangle,
-        color: Color,
-        origin: Vec2,
-        rotation: f32,
+        params: DrawParams,
     ) {
         // TODO: We could do this with trig if we wanted to optimize
         let transform = Mat3::from_translation(dest.top_left())
-            * Mat3::from_rotation_z(rotation)
-            * Mat3::from_translation(-origin);
+            * Mat3::from_rotation_z(params.rotation)
+            * Mat3::from_translation(-params.origin);
 
         let tl = transform.transform_point2(Vec2::ZERO);
-        let bl = transform.transform_point2(Vec2::new(0.0, dest.height));
-        let br = transform.transform_point2(Vec2::new(dest.width, dest.height));
-        let tr = transform.transform_point2(Vec2::new(dest.width, 0.0));
+        let bl = transform.transform_point2(Vec2::new(0.0, dest.height * params.scale.y));
+        let br = transform.transform_point2(Vec2::new(
+            dest.width * params.scale.x,
+            dest.height * params.scale.y,
+        ));
+        let tr = transform.transform_point2(Vec2::new(dest.width * params.scale.x, 0.0));
 
         self.vertices.extend_from_slice(&[
-            Vertex::new(tl, source.top_left(), color),
-            Vertex::new(bl, source.bottom_left(), color),
-            Vertex::new(br, source.bottom_right(), color),
-            Vertex::new(tr, source.top_right(), color),
+            Vertex::new(tl, source.top_left(), params.color),
+            Vertex::new(bl, source.bottom_left(), params.color),
+            Vertex::new(br, source.bottom_right(), params.color),
+            Vertex::new(tr, source.top_right(), params.color),
         ]);
 
         let batch = self.batches.last_mut().expect("should always exist");

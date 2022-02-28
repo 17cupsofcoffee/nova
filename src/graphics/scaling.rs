@@ -1,9 +1,9 @@
 use glam::Vec2;
 
-use crate::graphics::{Canvas, Transform};
+use crate::graphics::Canvas;
 use crate::window::Window;
 
-pub fn fit_canvas_to_window(window: &Window, canvas: &Canvas) -> Transform {
+pub fn fit_canvas_to_window(window: &Window, canvas: &Canvas) -> (Vec2, Vec2) {
     let (canvas_width, canvas_height) = canvas.size();
     let (window_width, window_height) = window.size();
 
@@ -22,7 +22,8 @@ pub fn fit_canvas_to_window(window: &Window, canvas: &Canvas) -> Transform {
     let screen_x = (window_width as i32 - screen_width) / 2;
     let screen_y = (window_height as i32 - screen_height) / 2;
 
-    Transform::new()
-        .position(Vec2::new(screen_x as f32, screen_y as f32))
-        .scale(Vec2::splat(scale_factor as f32))
+    (
+        Vec2::new(screen_x as f32, screen_y as f32),
+        Vec2::splat(scale_factor as f32),
+    )
 }

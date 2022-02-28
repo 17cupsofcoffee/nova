@@ -7,7 +7,6 @@ mod scaling;
 mod shader;
 mod text;
 mod texture;
-mod transform;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -24,7 +23,6 @@ pub use scaling::*;
 pub use shader::*;
 pub use text::*;
 pub use texture::*;
-pub use transform::*;
 
 use crate::window::Window;
 
