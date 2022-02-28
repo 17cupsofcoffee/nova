@@ -1,4 +1,4 @@
-use glam::Vec2;
+use glam::{Mat3, Vec2};
 
 use crate::graphics::{
     Graphics, Mesh, Rectangle, RenderPass, Shader, Target, Texture, Transform, Vertex,
@@ -46,11 +46,9 @@ void main() {
 }
 ";
 
-#[derive(Clone)]
 struct Batch {
-    pub indices: usize,
-    pub texture: Option<Texture>,
-    pub shader: Option<Shader>,
+    indices: usize,
+    texture: Option<Texture>,
 }
 
 pub struct Batcher {
@@ -88,8 +86,8 @@ impl Batcher {
             batches: vec![Batch {
                 indices: 0,
                 texture: None,
-                shader: None,
             }],
+
             default_texture,
             default_shader,
         }
@@ -107,13 +105,12 @@ impl Batcher {
 
         for batch in &self.batches {
             let texture = batch.texture.as_ref().unwrap_or(&self.default_texture);
-            let shader = batch.shader.as_ref().unwrap_or(&self.default_shader);
 
             gfx.draw(RenderPass {
                 target,
                 mesh: &self.mesh,
                 texture,
-                shader,
+                shader: &self.default_shader,
                 index_start,
                 index_count: batch.indices,
             });
@@ -127,36 +124,11 @@ impl Batcher {
         self.batches.push(Batch {
             indices: 0,
             texture: None,
-            shader: None,
         });
     }
 
     pub fn rect(&mut self, rect: Rectangle, color: Color) {
-        let mut batch = self.batches.last_mut().expect("should always exist");
-
-        if batch.indices != 0 && batch.texture.is_some() {
-            let mut new_batch = batch.clone();
-            new_batch.indices = 0;
-
-            self.batches.push(new_batch);
-
-            batch = self.batches.last_mut().expect("should always exist");
-        }
-
-        batch.texture = None;
-
-        self.vertices.extend_from_slice(&[
-            Vertex::new(Vec2::new(rect.x, rect.y), Vec2::ZERO, color),
-            Vertex::new(Vec2::new(rect.x, rect.y + rect.height), Vec2::ZERO, color),
-            Vertex::new(
-                Vec2::new(rect.x + rect.width, rect.y + rect.height),
-                Vec2::ZERO,
-                color,
-            ),
-            Vertex::new(Vec2::new(rect.x + rect.width, rect.y), Vec2::ZERO, color),
-        ]);
-
-        batch.indices += 6;
+        self.push_sprite(None, Rectangle::ZERO, rect, color, Vec2::ZERO, 0.0);
     }
 
     pub fn texture(&mut self, texture: &Texture, transform: impl Into<Transform>) {
@@ -173,40 +145,26 @@ impl Batcher {
         region: Rectangle,
         transform: impl Into<Transform>,
     ) {
-        let mut batch = self.batches.last_mut().expect("should always exist");
-
-        if batch.indices != 0 && batch.texture.as_ref() != Some(texture) {
-            let mut new_batch = batch.clone();
-            new_batch.indices = 0;
-
-            self.batches.push(new_batch);
-
-            batch = self.batches.last_mut().expect("should always exist");
-        }
-
-        batch.texture = Some(texture.clone());
-
         let transform = transform.into();
-        let matrix = transform.to_matrix();
 
-        let tl = matrix.transform_point2(Vec2::ZERO);
-        let bl = matrix.transform_point2(Vec2::new(0.0, region.height));
-        let br = matrix.transform_point2(Vec2::new(region.width, region.height));
-        let tr = matrix.transform_point2(Vec2::new(region.width, 0.0));
-
-        let u1 = region.x / texture.width() as f32;
-        let v1 = region.y / texture.height() as f32;
-        let u2 = region.right() / texture.width() as f32;
-        let v2 = region.bottom() / texture.height() as f32;
-
-        self.vertices.extend_from_slice(&[
-            Vertex::new(tl, Vec2::new(u1, v1), Color::WHITE),
-            Vertex::new(bl, Vec2::new(u1, v2), Color::WHITE),
-            Vertex::new(br, Vec2::new(u2, v2), Color::WHITE),
-            Vertex::new(tr, Vec2::new(u2, v1), Color::WHITE),
-        ]);
-
-        batch.indices += 6;
+        self.push_sprite(
+            Some(texture),
+            Rectangle::new(
+                region.x / texture.width() as f32,
+                region.y / texture.height() as f32,
+                region.width / texture.width() as f32,
+                region.height / texture.height() as f32,
+            ),
+            Rectangle::new(
+                transform.position.x,
+                transform.position.y,
+                region.width * transform.scale.x,
+                region.height * transform.scale.y,
+            ),
+            Color::WHITE,
+            transform.origin,
+            transform.rotation,
+        );
     }
 
     // TODO: This API kinda sucks and duplicates a load of code, figure out a nicer one
@@ -217,37 +175,19 @@ impl Batcher {
         dest: Rectangle,
         color: Color,
     ) {
-        let mut batch = self.batches.last_mut().expect("should always exist");
-
-        if batch.indices != 0 && batch.texture.as_ref() != Some(texture) {
-            let mut new_batch = batch.clone();
-            new_batch.indices = 0;
-
-            self.batches.push(new_batch);
-
-            batch = self.batches.last_mut().expect("should always exist");
-        }
-
-        batch.texture = Some(texture.clone());
-
-        let tl = dest.top_left();
-        let bl = dest.bottom_left();
-        let br = dest.bottom_right();
-        let tr = dest.top_right();
-
-        let u1 = src.x / texture.width() as f32;
-        let v1 = src.y / texture.height() as f32;
-        let u2 = src.right() / texture.width() as f32;
-        let v2 = src.bottom() / texture.height() as f32;
-
-        self.vertices.extend_from_slice(&[
-            Vertex::new(tl, Vec2::new(u1, v1), color),
-            Vertex::new(bl, Vec2::new(u1, v2), color),
-            Vertex::new(br, Vec2::new(u2, v2), color),
-            Vertex::new(tr, Vec2::new(u2, v1), color),
-        ]);
-
-        batch.indices += 6;
+        self.push_sprite(
+            Some(texture),
+            Rectangle::new(
+                src.x / texture.width() as f32,
+                src.y / texture.height() as f32,
+                src.width / texture.width() as f32,
+                src.height / texture.height() as f32,
+            ),
+            dest,
+            color,
+            Vec2::ZERO,
+            0.0,
+        );
     }
 
     pub fn text(&mut self, font: &SpriteFont, text: &str, position: Vec2) {
@@ -279,6 +219,47 @@ impl Batcher {
 
                 last_char = Some(ch);
             }
+        }
+    }
+
+    fn push_sprite(
+        &mut self,
+        texture: Option<&Texture>,
+        source: Rectangle,
+        dest: Rectangle,
+        color: Color,
+        origin: Vec2,
+        rotation: f32,
+    ) {
+        // TODO: We could do this with trig if we wanted to optimize
+        let transform = Mat3::from_translation(dest.top_left())
+            * Mat3::from_rotation_z(rotation)
+            * Mat3::from_translation(-origin);
+
+        let tl = transform.transform_point2(Vec2::ZERO);
+        let bl = transform.transform_point2(Vec2::new(0.0, dest.height));
+        let br = transform.transform_point2(Vec2::new(dest.width, dest.height));
+        let tr = transform.transform_point2(Vec2::new(dest.width, 0.0));
+
+        self.vertices.extend_from_slice(&[
+            Vertex::new(tl, source.top_left(), color),
+            Vertex::new(bl, source.bottom_left(), color),
+            Vertex::new(br, source.bottom_right(), color),
+            Vertex::new(tr, source.top_right(), color),
+        ]);
+
+        let batch = self.batches.last_mut().expect("should always exist");
+
+        if batch.indices == 0 {
+            batch.indices = 6;
+            batch.texture = texture.cloned();
+        } else if batch.texture.as_ref() != texture {
+            self.batches.push(Batch {
+                indices: 6,
+                texture: texture.cloned(),
+            });
+        } else {
+            batch.indices += 6;
         }
     }
 }
