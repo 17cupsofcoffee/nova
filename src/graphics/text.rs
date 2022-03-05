@@ -33,7 +33,7 @@ pub struct SpriteFont {
     ascent: f32,
     descent: f32,
     line_height: f32,
-    packer: ShelfPacker,
+    texture: Texture,
     cache: HashMap<char, SpriteFontGlyph>,
     kerning: HashMap<(char, char), f32>,
 }
@@ -82,14 +82,14 @@ impl SpriteFont {
             ascent: line_metrics.ascent,
             descent: line_metrics.descent,
             line_height: line_metrics.new_line_size,
-            packer,
+            texture: packer.into_texture(),
             cache,
             kerning,
         }
     }
 
     pub fn texture(&self) -> &Texture {
-        self.packer.texture()
+        &self.texture
     }
 
     pub fn glyph(&self, ch: char) -> Option<&SpriteFontGlyph> {

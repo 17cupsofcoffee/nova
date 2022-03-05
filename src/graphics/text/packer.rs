@@ -31,6 +31,11 @@ impl ShelfPacker {
         &self.texture
     }
 
+    /// Consumes the packer, returning the generated texture.
+    pub fn into_texture(self) -> Texture {
+        self.texture
+    }
+
     /// Tries to insert RGBA data into the atlas, and returns the position.
     ///
     /// If the data will not fit into the remaining space, `None` will be returned.
