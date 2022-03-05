@@ -135,6 +135,8 @@ impl Batcher {
     {
         let target = target.into();
 
+        // TODO: This doesn't handle batches that are larger than MAX_VERTICES
+        // very well
         self.mesh.set_vertices(&self.vertices);
 
         let mut index_start = 0;
