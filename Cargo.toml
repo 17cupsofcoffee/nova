@@ -11,7 +11,7 @@ sdl2 = "0.35"
 glow = "0.11"
 bytemuck = { version = "1.7", features = ["derive"] }
 glam = { version = "0.20", features = ["bytemuck"] }
-fontdue = "0.6"
+fontdue = "0.7"
 png = "0.17"
 
 # Optional
