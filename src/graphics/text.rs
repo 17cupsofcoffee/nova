@@ -11,6 +11,8 @@ use self::packer::ShelfPacker;
 
 use super::Texture;
 
+const ATLAS_PADDING: i32 = 1;
+
 pub struct Font {
     data: FontdueFont,
 }
@@ -54,7 +56,12 @@ impl SpriteFont {
             let data: Vec<u8> = data.into_iter().map(|x| [x, x, x, x]).flatten().collect();
 
             let uv = packer
-                .insert(&data, metrics.width as i32, metrics.height as i32, 1)
+                .insert(
+                    &data,
+                    metrics.width as i32,
+                    metrics.height as i32,
+                    ATLAS_PADDING,
+                )
                 .expect("out of space");
 
             cache.insert(
@@ -62,8 +69,8 @@ impl SpriteFont {
                 SpriteFontGlyph {
                     advance: metrics.advance_width,
                     offset: Vec2::new(
-                        metrics.bounds.xmin,
-                        -metrics.bounds.height - metrics.bounds.ymin,
+                        metrics.bounds.xmin - ATLAS_PADDING as f32,
+                        -metrics.bounds.height - metrics.bounds.ymin - ATLAS_PADDING as f32,
                     ),
                     uv: Rectangle::new(uv.x as f32, uv.y as f32, uv.width as f32, uv.height as f32),
                 },
