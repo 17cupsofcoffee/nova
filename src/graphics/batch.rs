@@ -249,7 +249,7 @@ impl Batcher {
                         font.texture(),
                         (position + offset + glyph.offset).floor(),
                         glyph.uv,
-                        DrawParams::new(),
+                        DrawParams::new().color(segment.color),
                     );
 
                     offset.x += glyph.advance;
@@ -309,12 +309,19 @@ impl Batcher {
 
 pub struct TextSegment<'a> {
     content: Cow<'a, str>,
+    color: Color,
 }
 
 impl<'a> TextSegment<'a> {
     pub fn new(content: impl Into<Cow<'a, str>>) -> TextSegment<'a> {
         TextSegment {
             content: content.into(),
+            color: Color::WHITE,
         }
+    }
+
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
     }
 }
