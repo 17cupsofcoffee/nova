@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use glam::{Mat3, Vec2};
 
 use crate::graphics::{Graphics, Mesh, Rectangle, RenderPass, Shader, Target, Texture, Vertex};
@@ -223,37 +225,43 @@ impl Batcher {
         );
     }
 
-    pub fn text(&mut self, font: &SpriteFont, text: &str, position: Vec2) {
+    pub fn text_segments(&mut self, font: &SpriteFont, position: Vec2, text: &[TextSegment<'_>]) {
         let mut offset = Vec2::new(0.0, font.ascent() + font.descent());
         let mut last_char = None;
 
-        for ch in text.chars() {
-            if ch.is_control() {
-                if ch == '\n' {
-                    offset.x = 0.0;
-                    offset.y += font.line_height();
+        for segment in text {
+            for ch in segment.content.chars() {
+                if ch.is_control() {
+                    if ch == '\n' {
+                        offset.x = 0.0;
+                        offset.y += font.line_height();
+                    }
+
+                    continue;
                 }
 
-                continue;
-            }
+                if let Some(glyph) = font.glyph(ch) {
+                    if let Some(kerning) = last_char.and_then(|l| font.kerning(l, ch)) {
+                        offset.x += kerning;
+                    }
 
-            if let Some(glyph) = font.glyph(ch) {
-                if let Some(kerning) = last_char.and_then(|l| font.kerning(l, ch)) {
-                    offset.x += kerning;
+                    self.texture_region(
+                        font.texture(),
+                        (position + offset + glyph.offset).floor(),
+                        glyph.uv,
+                        DrawParams::new(),
+                    );
+
+                    offset.x += glyph.advance;
+
+                    last_char = Some(ch);
                 }
-
-                self.texture_region(
-                    font.texture(),
-                    (position + offset + glyph.offset).floor(),
-                    glyph.uv,
-                    DrawParams::new(),
-                );
-
-                offset.x += glyph.advance;
-
-                last_char = Some(ch);
             }
         }
+    }
+
+    pub fn text(&mut self, font: &SpriteFont, position: Vec2, text: &str) {
+        self.text_segments(font, position, &[TextSegment::new(text)])
     }
 
     fn push_sprite(
@@ -295,6 +303,18 @@ impl Batcher {
             });
         } else {
             batch.indices += 6;
+        }
+    }
+}
+
+pub struct TextSegment<'a> {
+    content: Cow<'a, str>,
+}
+
+impl<'a> TextSegment<'a> {
+    pub fn new(content: impl Into<Cow<'a, str>>) -> TextSegment<'a> {
+        TextSegment {
+            content: content.into(),
         }
     }
 }
