@@ -1,5 +1,6 @@
 mod packer;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use fontdue::{Font as FontdueFont, FontSettings};
@@ -118,32 +119,21 @@ impl SpriteFont {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum TextSection {
-    String(String),
-    ChangeColor(Color),
+pub struct TextSegment<'a> {
+    pub content: Cow<'a, str>,
+    pub color: Color,
 }
 
-#[derive(Clone, Debug)]
-pub struct RichText {
-    pub sections: Vec<TextSection>,
-}
-
-impl RichText {
-    pub fn new(sections: impl Into<Vec<TextSection>>) -> RichText {
-        RichText {
-            sections: sections.into(),
+impl<'a> TextSegment<'a> {
+    pub fn new(content: impl Into<Cow<'a, str>>) -> TextSegment<'a> {
+        TextSegment {
+            content: content.into(),
+            color: Color::WHITE,
         }
     }
 
-    pub fn text(&self) -> impl Iterator<Item = &str> + '_ {
-        self.sections.iter().filter_map(|section| match section {
-            TextSection::String(s) => Some(s.as_str()),
-            _ => None,
-        })
-    }
-
-    pub fn chars(&self) -> impl Iterator<Item = char> + '_ {
-        self.text().flat_map(str::chars)
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
     }
 }
