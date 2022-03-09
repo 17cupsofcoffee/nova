@@ -1,10 +1,9 @@
-use std::borrow::Cow;
-
 use glam::{Mat3, Vec2};
 
-use crate::graphics::{Graphics, Mesh, Rectangle, RenderPass, Shader, Target, Texture, Vertex};
-
-use super::{Color, SpriteFont};
+use crate::graphics::{
+    Color, Graphics, Mesh, Rectangle, RenderPass, RichText, Shader, SpriteFont, Target,
+    TextSection, Texture, Vertex,
+};
 
 const MAX_SPRITES: usize = 2048;
 const MAX_VERTICES: usize = MAX_SPRITES * 4; // Cannot be greater than 32767!
@@ -225,43 +224,79 @@ impl Batcher {
         );
     }
 
-    pub fn text_segments(&mut self, font: &SpriteFont, position: Vec2, text: &[TextSegment<'_>]) {
-        let mut offset = Vec2::new(0.0, font.ascent() + font.descent());
-        let mut last_char = None;
+    pub fn text(
+        &mut self,
+        font: &SpriteFont,
+        position: Vec2,
+        text: &str,
+        max_chars: Option<usize>,
+    ) {
+        let mut state = TextState::new(Vec2::new(0.0, font.ascent() + font.descent()));
+        self.text_inner(font, position, text, max_chars, &mut state)
+    }
 
-        for segment in text {
-            for ch in segment.content.chars() {
-                if ch.is_control() {
-                    if ch == '\n' {
-                        offset.x = 0.0;
-                        offset.y += font.line_height();
-                    }
+    pub fn rich_text(
+        &mut self,
+        font: &SpriteFont,
+        position: Vec2,
+        text: &RichText,
+        max_chars: Option<usize>,
+    ) {
+        let mut state = TextState::new(Vec2::new(0.0, font.ascent() + font.descent()));
 
-                    continue;
+        for section in &text.sections {
+            match section {
+                TextSection::String(string) => {
+                    self.text_inner(font, position, string, max_chars, &mut state)
                 }
 
-                if let Some(glyph) = font.glyph(ch) {
-                    if let Some(kerning) = last_char.and_then(|l| font.kerning(l, ch)) {
-                        offset.x += kerning;
-                    }
-
-                    self.texture_region(
-                        font.texture(),
-                        (position + offset + glyph.offset).floor(),
-                        glyph.uv,
-                        DrawParams::new().color(segment.color),
-                    );
-
-                    offset.x += glyph.advance;
-
-                    last_char = Some(ch);
+                TextSection::ChangeColor(new_color) => {
+                    state.color = *new_color;
                 }
             }
         }
     }
 
-    pub fn text(&mut self, font: &SpriteFont, position: Vec2, text: &str) {
-        self.text_segments(font, position, &[TextSegment::new(text)])
+    fn text_inner(
+        &mut self,
+        font: &SpriteFont,
+        position: Vec2,
+        text: &str,
+        max_chars: Option<usize>,
+        state: &mut TextState,
+    ) {
+        for ch in text.chars() {
+            state.chars += 1;
+
+            if max_chars.map(|m| state.chars > m).unwrap_or(false) {
+                return;
+            }
+
+            if ch.is_control() {
+                if ch == '\n' {
+                    state.offset.x = 0.0;
+                    state.offset.y += font.line_height();
+                }
+
+                continue;
+            }
+
+            if let Some(glyph) = font.glyph(ch) {
+                if let Some(kerning) = state.last_char.and_then(|l| font.kerning(l, ch)) {
+                    state.offset.x += kerning;
+                }
+
+                self.texture_region(
+                    font.texture(),
+                    (position + state.offset + glyph.offset).floor(),
+                    glyph.uv,
+                    DrawParams::new().color(state.color),
+                );
+
+                state.offset.x += glyph.advance;
+                state.last_char = Some(ch);
+            }
+        }
     }
 
     fn push_sprite(
@@ -307,21 +342,20 @@ impl Batcher {
     }
 }
 
-pub struct TextSegment<'a> {
-    content: Cow<'a, str>,
+struct TextState {
+    offset: Vec2,
+    last_char: Option<char>,
+    chars: usize,
     color: Color,
 }
 
-impl<'a> TextSegment<'a> {
-    pub fn new(content: impl Into<Cow<'a, str>>) -> TextSegment<'a> {
-        TextSegment {
-            content: content.into(),
+impl TextState {
+    fn new(offset: Vec2) -> TextState {
+        TextState {
+            offset,
+            last_char: None,
+            chars: 0,
             color: Color::WHITE,
         }
-    }
-
-    pub fn color(mut self, color: Color) -> Self {
-        self.color = color;
-        self
     }
 }

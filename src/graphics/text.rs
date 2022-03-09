@@ -5,11 +5,9 @@ use std::collections::HashMap;
 use fontdue::{Font as FontdueFont, FontSettings};
 use glam::Vec2;
 
-use crate::graphics::{Graphics, Rectangle};
+use crate::graphics::{Color, Graphics, Rectangle, Texture};
 
 use self::packer::ShelfPacker;
-
-use super::Texture;
 
 const ATLAS_PADDING: i32 = 1;
 
@@ -117,5 +115,35 @@ impl SpriteFont {
 
     pub fn kerning(&self, a: char, b: char) -> Option<f32> {
         self.kerning.get(&(a, b)).copied()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum TextSection {
+    String(String),
+    ChangeColor(Color),
+}
+
+#[derive(Clone, Debug)]
+pub struct RichText {
+    pub sections: Vec<TextSection>,
+}
+
+impl RichText {
+    pub fn new(sections: impl Into<Vec<TextSection>>) -> RichText {
+        RichText {
+            sections: sections.into(),
+        }
+    }
+
+    pub fn text(&self) -> impl Iterator<Item = &str> + '_ {
+        self.sections.iter().filter_map(|section| match section {
+            TextSection::String(s) => Some(s.as_str()),
+            _ => None,
+        })
+    }
+
+    pub fn chars(&self) -> impl Iterator<Item = char> + '_ {
+        self.text().flat_map(str::chars)
     }
 }

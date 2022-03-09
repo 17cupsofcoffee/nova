@@ -26,11 +26,6 @@ impl ShelfPacker {
         }
     }
 
-    /// Returns a reference to the current atlas texture.
-    pub fn texture(&self) -> &Texture {
-        &self.texture
-    }
-
     /// Consumes the packer, returning the generated texture.
     pub fn into_texture(self) -> Texture {
         self.texture
