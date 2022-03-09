@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 pub struct Timer {
     last_time: Instant,
     accumulator: Duration,
+    delta_time: Duration,
     fixed_delta: Duration,
     max_lag: Duration,
 }
@@ -14,6 +15,7 @@ impl Timer {
         Timer {
             last_time: Instant::now(),
             accumulator: Duration::ZERO,
+            delta_time: Duration::ZERO,
             fixed_delta,
             max_lag: fixed_delta * 8,
         }
@@ -21,13 +23,17 @@ impl Timer {
 
     pub fn tick(&mut self) {
         let curr_time = Instant::now();
-        let delta_time = curr_time - self.last_time;
 
-        self.accumulator = Duration::min(self.accumulator + delta_time, self.max_lag);
+        self.delta_time = curr_time - self.last_time;
+        self.accumulator = Duration::min(self.accumulator + self.delta_time, self.max_lag);
         self.last_time = curr_time;
     }
 
-    pub fn delta(&self) -> Duration {
+    pub fn delta_time(&self) -> Duration {
+        self.delta_time
+    }
+
+    pub fn fixed_delta(&self) -> Duration {
         self.fixed_delta
     }
 
