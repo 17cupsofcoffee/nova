@@ -17,7 +17,7 @@ impl Canvas {
 
             gfx.state.bind_canvas(Some(id));
 
-            let texture = Texture::new(gfx, width, height);
+            let texture = Texture::empty(gfx, width, height);
 
             gfx.state.gl.framebuffer_texture_2d(
                 glow::FRAMEBUFFER,

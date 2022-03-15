@@ -29,8 +29,10 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(gfx: &Graphics, width: i32, height: i32) -> Texture {
+    pub fn new(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
         unsafe {
+            assert_eq!(width as usize * height as usize * 4, data.len());
+
             let id = gfx.state.gl.create_texture().unwrap();
 
             gfx.state.bind_texture(Some(id));
@@ -76,7 +78,7 @@ impl Texture {
                 0,
                 glow::RGBA,
                 glow::UNSIGNED_BYTE,
-                None,
+                Some(data),
             );
 
             Texture {
@@ -88,6 +90,15 @@ impl Texture {
                 }),
             }
         }
+    }
+
+    pub fn empty(gfx: &Graphics, width: i32, height: i32) -> Texture {
+        Texture::new(
+            gfx,
+            width,
+            height,
+            &vec![0; width as usize * height as usize * 4],
+        )
     }
 
     pub fn width(&self) -> i32 {
@@ -108,7 +119,13 @@ impl Texture {
 
     pub fn set_region(&self, x: i32, y: i32, width: i32, height: i32, data: &[u8]) {
         unsafe {
-            // TODO: checks
+            assert_eq!(width as usize * height as usize * 4, data.len());
+            assert!(
+                x >= 0
+                    && y >= 0
+                    && x + width <= self.inner.width
+                    && y + height <= self.inner.height
+            );
 
             self.inner.state.bind_texture(Some(self.inner.id));
 

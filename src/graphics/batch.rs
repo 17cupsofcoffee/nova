@@ -112,9 +112,7 @@ impl Batcher {
         mesh.set_indices(&indices);
 
         let default_shader = Shader::new(gfx, VERTEX_SHADER, FRAGMENT_SHADER);
-        let default_texture = Texture::new(gfx, 1, 1);
-
-        default_texture.set_data(&[255, 255, 255, 255]);
+        let default_texture = Texture::new(gfx, 1, 1, &[255, 255, 255, 255]);
 
         Batcher {
             mesh,

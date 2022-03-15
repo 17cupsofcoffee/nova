@@ -20,7 +20,7 @@ impl ShelfPacker {
     /// Creates a new `ShelfPacker`.
     pub fn new(gfx: &Graphics, texture_width: i32, texture_height: i32) -> ShelfPacker {
         ShelfPacker {
-            texture: Texture::new(gfx, texture_width, texture_height),
+            texture: Texture::empty(gfx, texture_width, texture_height),
             shelves: Vec::new(),
             next_y: 0,
         }

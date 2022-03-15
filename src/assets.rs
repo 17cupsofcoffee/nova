@@ -63,8 +63,5 @@ pub fn load_png(gfx: &Graphics, bytes: &[u8], premultiply: bool) -> Texture {
         }
     }
 
-    let texture = Texture::new(gfx, info.width as i32, info.height as i32);
-    texture.set_data(&buf);
-
-    texture
+    Texture::new(gfx, info.width as i32, info.height as i32, &buf)
 }
