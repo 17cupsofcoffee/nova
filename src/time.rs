@@ -37,6 +37,10 @@ impl Timer {
         self.fixed_delta
     }
 
+    pub fn blend_factor(&self) -> f32 {
+        self.accumulator.as_secs_f32() / self.fixed_delta.as_secs_f32()
+    }
+
     pub fn check_update_ready(&mut self) -> bool {
         let ready = self.accumulator >= self.fixed_delta;
 
