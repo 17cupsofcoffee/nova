@@ -131,16 +131,9 @@ impl Graphics {
         }
     }
 
-    pub fn clear<'a>(&self, target: impl Into<Target<'a>>, color: Color) {
+    pub fn clear(&self, target: &impl Target, color: Color) {
         unsafe {
-            match target.into() {
-                Target::Window(_) => {
-                    self.state.bind_canvas(None);
-                }
-                Target::Canvas(canvas) => {
-                    self.state.bind_canvas(Some(canvas.id));
-                }
-            }
+            target.bind(self);
 
             self.state.gl.disable(glow::SCISSOR_TEST);
             self.state
@@ -150,7 +143,10 @@ impl Graphics {
         }
     }
 
-    pub fn draw(&self, pass: RenderPass<'_>) {
+    pub fn draw<T>(&self, pass: RenderPass<'_, T>)
+    where
+        T: Target,
+    {
         unsafe {
             self.state
                 .bind_vertex_buffer(Some(pass.mesh.inner.vertex_buffer));
@@ -196,23 +192,8 @@ impl Graphics {
                 .get_uniform_location(pass.shader.inner.id, "u_projection")
                 .unwrap();
 
-            let (target_width, target_height, flipped) = match pass.target {
-                Target::Window(window) => {
-                    self.state.bind_canvas(None);
-                    self.state.gl.front_face(glow::CCW);
-
-                    let size = window.size();
-                    (size.0 as i32, size.1 as i32, false)
-                }
-
-                Target::Canvas(canvas) => {
-                    self.state.bind_canvas(Some(canvas.id));
-                    self.state.gl.front_face(glow::CW);
-
-                    let size = canvas.texture().size();
-                    (size.0, size.1, true)
-                }
-            };
+            pass.target.bind(self);
+            let (target_width, target_height) = pass.target.size();
 
             self.state.gl.uniform_matrix_4_f32_slice(
                 Some(&proj),
@@ -220,8 +201,16 @@ impl Graphics {
                 Mat4::orthographic_rh_gl(
                     0.0,
                     target_width as f32,
-                    if flipped { 0.0 } else { target_height as f32 },
-                    if flipped { target_height as f32 } else { 0.0 },
+                    if T::FLIPPED {
+                        0.0
+                    } else {
+                        target_height as f32
+                    },
+                    if T::FLIPPED {
+                        target_height as f32
+                    } else {
+                        0.0
+                    },
                     -1.0,
                     1.0,
                 )
@@ -242,26 +231,48 @@ impl Graphics {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum Target<'a> {
-    Window(&'a Window),
-    Canvas(&'a Canvas),
+pub trait Target {
+    const FLIPPED: bool;
+
+    fn bind(&self, gfx: &Graphics);
+    fn size(&self) -> (i32, i32);
 }
 
-impl<'a> From<&'a Window> for Target<'a> {
-    fn from(window: &'a Window) -> Target<'a> {
-        Target::Window(window)
+impl Target for Window {
+    const FLIPPED: bool = false;
+
+    fn bind(&self, gfx: &Graphics) {
+        gfx.state.bind_canvas(None);
+
+        unsafe {
+            gfx.state.gl.front_face(glow::CCW);
+        }
+    }
+
+    fn size(&self) -> (i32, i32) {
+        let (width, height) = self.size();
+        (width as i32, height as i32)
     }
 }
 
-impl<'a> From<&'a Canvas> for Target<'a> {
-    fn from(canvas: &'a Canvas) -> Target<'a> {
-        Target::Canvas(canvas)
+impl Target for Canvas {
+    const FLIPPED: bool = true;
+
+    fn bind(&self, gfx: &Graphics) {
+        gfx.state.bind_canvas(Some(self.id));
+
+        unsafe {
+            gfx.state.gl.front_face(glow::CW);
+        }
+    }
+
+    fn size(&self) -> (i32, i32) {
+        self.size()
     }
 }
 
-pub struct RenderPass<'a> {
-    pub target: Target<'a>,
+pub struct RenderPass<'a, T> {
+    pub target: &'a T,
 
     pub mesh: &'a Mesh,
     pub texture: &'a Texture,

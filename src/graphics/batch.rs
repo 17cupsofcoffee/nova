@@ -130,12 +130,7 @@ impl Batcher {
         }
     }
 
-    pub fn draw<'a, T>(&mut self, gfx: &Graphics, target: T)
-    where
-        T: Into<Target<'a>>,
-    {
-        let target = target.into();
-
+    pub fn draw(&mut self, gfx: &Graphics, target: &impl Target) {
         // TODO: This doesn't handle batches that are larger than MAX_VERTICES
         // very well
         self.mesh.set_vertices(&self.vertices);
