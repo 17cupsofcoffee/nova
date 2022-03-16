@@ -2,7 +2,7 @@ mod generated;
 
 use std::path::Path;
 
-use glam::{IVec2, Vec2};
+use glam::IVec2;
 
 use crate::graphics::Rectangle;
 
@@ -27,21 +27,21 @@ impl Level {
 }
 
 impl LayerInstance {
-    pub fn get_grid_tiles(&self) -> impl Iterator<Item = (Vec2, Rectangle)> + '_ {
-        self.grid_tiles.iter().map(|tile| {
-            (
-                Vec2::new(tile.px[0] as f32, tile.px[1] as f32),
-                Rectangle::new(
-                    tile.src[0] as f32,
-                    tile.src[1] as f32,
-                    self.grid_size as f32,
-                    self.grid_size as f32,
-                ),
-            )
+    pub fn get_grid_tiles(&self) -> impl Iterator<Item = GridTile> + '_ {
+        self.grid_tiles.iter().map(|tile| GridTile {
+            position: IVec2::new(tile.px[0] as i32, tile.px[1] as i32),
+            uv: Rectangle::new(
+                tile.src[0] as f32,
+                tile.src[1] as f32,
+                self.grid_size as f32,
+                self.grid_size as f32,
+            ),
+            flip_x: tile.f == 1 || tile.f == 3,
+            flip_y: tile.f == 2 || tile.f == 3,
         })
     }
 
-    pub fn get_int_grid(&self) -> impl Iterator<Item = (IVec2, i32)> + '_ {
+    pub fn get_int_grid(&self) -> impl Iterator<Item = IntGridTile> + '_ {
         let width = self.c_wid;
 
         self.int_grid_csv
@@ -52,10 +52,25 @@ impl LayerInstance {
                     let x = i % width as usize;
                     let y = i / width as usize;
 
-                    Some((IVec2::new(x as i32, y as i32), *val as i32))
+                    Some(IntGridTile {
+                        position: IVec2::new(x as i32, y as i32),
+                        value: *val as i32,
+                    })
                 } else {
                     None
                 }
             })
     }
+}
+
+pub struct GridTile {
+    pub position: IVec2,
+    pub uv: Rectangle,
+    pub flip_x: bool,
+    pub flip_y: bool,
+}
+
+pub struct IntGridTile {
+    pub position: IVec2,
+    pub value: i32,
 }
