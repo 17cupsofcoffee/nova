@@ -3,7 +3,19 @@ use glam::Vec2;
 use crate::graphics::Canvas;
 use crate::window::Window;
 
-pub fn fit_canvas_to_window(window: &Window, canvas: &Canvas) -> (Vec2, Vec2) {
+use super::{Batcher, DrawParams};
+
+pub fn screen_scale(canvas: &Canvas, window: &Window, batch: &mut Batcher) {
+    let (screen_pos, screen_scale) = fit_canvas_to_window(canvas, window);
+
+    batch.texture(
+        canvas.texture(),
+        screen_pos,
+        DrawParams::new().scale(screen_scale),
+    );
+}
+
+pub fn fit_canvas_to_window(canvas: &Canvas, window: &Window) -> (Vec2, Vec2) {
     let (canvas_width, canvas_height) = canvas.size();
     let (window_width, window_height) = window.size();
 
