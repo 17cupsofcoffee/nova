@@ -31,9 +31,10 @@ pub struct SpriteFontGlyph {
 }
 
 pub struct SpriteFont {
-    ascent: f32,
-    descent: f32,
-    line_height: f32,
+    pub ascent: f32,
+    pub descent: f32,
+    pub line_gap: f32,
+
     texture: Texture,
     cache: HashMap<char, SpriteFontGlyph>,
     kerning: HashMap<(char, char), f32>,
@@ -87,7 +88,8 @@ impl SpriteFont {
         SpriteFont {
             ascent: line_metrics.ascent,
             descent: line_metrics.descent,
-            line_height: line_metrics.new_line_size,
+            line_gap: line_metrics.line_gap,
+
             texture: packer.into_texture(),
             cache,
             kerning,
@@ -102,16 +104,8 @@ impl SpriteFont {
         self.cache.get(&ch)
     }
 
-    pub fn ascent(&self) -> f32 {
-        self.ascent
-    }
-
-    pub fn descent(&self) -> f32 {
-        self.descent
-    }
-
     pub fn line_height(&self) -> f32 {
-        self.line_height
+        self.ascent - self.descent + self.line_gap
     }
 
     pub fn kerning(&self, a: char, b: char) -> Option<f32> {

@@ -224,7 +224,7 @@ impl Batcher {
         text: &[TextSegment<'_>],
         max_chars: Option<usize>,
     ) {
-        let mut offset = Vec2::new(0.0, font.ascent() + font.descent());
+        let mut offset = Vec2::new(0.0, font.ascent.floor());
         let mut last_char = None;
         let mut chars = 0;
 
@@ -239,7 +239,7 @@ impl Batcher {
                 if ch.is_control() {
                     if ch == '\n' {
                         offset.x = 0.0;
-                        offset.y += font.line_height();
+                        offset.y += font.line_height().floor();
                     }
 
                     continue;
