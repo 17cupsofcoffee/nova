@@ -26,6 +26,10 @@ impl Font {
 
 pub struct SpriteFontGlyph {
     pub advance: f32,
+    pub image: Option<SpriteFontGlyphImage>,
+}
+
+pub struct SpriteFontGlyphImage {
     pub offset: Vec2,
     pub uv: Rectangle,
 }
@@ -53,26 +57,35 @@ impl SpriteFont {
             let ch = ch as char;
 
             let (metrics, data) = font.data.rasterize(ch, size);
-            let data: Vec<u8> = data.into_iter().map(|x| [x, x, x, x]).flatten().collect();
 
-            let uv = packer
-                .insert(
-                    &data,
-                    metrics.width as i32,
-                    metrics.height as i32,
-                    ATLAS_PADDING,
-                )
-                .expect("out of space");
+            let image = if !data.is_empty() {
+                let data: Vec<u8> = data.into_iter().map(|x| [x, x, x, x]).flatten().collect();
 
-            cache.insert(
-                ch,
-                SpriteFontGlyph {
-                    advance: metrics.advance_width,
+                let uv = packer
+                    .insert(
+                        &data,
+                        metrics.width as i32,
+                        metrics.height as i32,
+                        ATLAS_PADDING,
+                    )
+                    .expect("out of space");
+
+                Some(SpriteFontGlyphImage {
                     offset: Vec2::new(
                         metrics.bounds.xmin - ATLAS_PADDING as f32,
                         -metrics.bounds.height - metrics.bounds.ymin - ATLAS_PADDING as f32,
                     ),
                     uv: Rectangle::new(uv.x as f32, uv.y as f32, uv.width as f32, uv.height as f32),
+                })
+            } else {
+                None
+            };
+
+            cache.insert(
+                ch,
+                SpriteFontGlyph {
+                    advance: metrics.advance_width,
+                    image,
                 },
             );
 

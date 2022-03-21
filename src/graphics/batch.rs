@@ -224,7 +224,7 @@ impl Batcher {
         text: &[TextSegment<'_>],
         max_chars: Option<usize>,
     ) {
-        let mut offset = Vec2::new(0.0, font.ascent.floor());
+        let mut cursor = Vec2::new(0.0, font.ascent.floor());
         let mut last_char = None;
         let mut chars = 0;
 
@@ -238,8 +238,8 @@ impl Batcher {
 
                 if ch.is_control() {
                     if ch == '\n' {
-                        offset.x = 0.0;
-                        offset.y += font.line_height().floor();
+                        cursor.x = 0.0;
+                        cursor.y += font.line_height().floor();
                     }
 
                     continue;
@@ -247,17 +247,19 @@ impl Batcher {
 
                 if let Some(glyph) = font.glyph(ch) {
                     if let Some(kerning) = last_char.and_then(|l| font.kerning(l, ch)) {
-                        offset.x += kerning;
+                        cursor.x += kerning;
                     }
 
-                    self.texture_region(
-                        font.texture(),
-                        (position + offset + glyph.offset).floor(),
-                        glyph.uv,
-                        DrawParams::new().color(segment.color),
-                    );
+                    if let Some(image) = &glyph.image {
+                        self.texture_region(
+                            font.texture(),
+                            (position + cursor + image.offset).floor(),
+                            image.uv,
+                            DrawParams::new().color(segment.color),
+                        );
+                    }
 
-                    offset.x += glyph.advance;
+                    cursor.x += glyph.advance;
 
                     last_char = Some(ch);
                 }
