@@ -143,4 +143,11 @@ impl<'a> TextSegment<'a> {
         self.color = color;
         self
     }
+
+    pub fn into_owned(self) -> TextSegment<'static> {
+        TextSegment {
+            content: self.content.into_owned().into(),
+            color: self.color,
+        }
+    }
 }
