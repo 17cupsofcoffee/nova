@@ -29,6 +29,12 @@ impl Timer {
         self.last_time = curr_time;
     }
 
+    pub fn reset(&mut self) {
+        self.last_time = Instant::now();
+        self.accumulator = Duration::ZERO;
+        self.delta_time = Duration::ZERO;
+    }
+
     pub fn delta_time(&self) -> Duration {
         self.delta_time
     }
