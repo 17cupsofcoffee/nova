@@ -1,23 +1,47 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::PathBuf;
 use std::time::Instant;
 
+use once_cell::sync::OnceCell;
 use png::{BitDepth, ColorType, Decoder};
 
 use crate::graphics::{Graphics, Texture};
 
+pub fn base_path() -> &'static PathBuf {
+    static BASE_PATH: OnceCell<PathBuf> = OnceCell::new();
+
+    // TODO: Make this use SDL_GetBaseDir when packaging for release
+    BASE_PATH.get_or_try_init(std::env::current_dir).unwrap()
+}
+
+pub fn resource_path(path: &str) -> PathBuf {
+    base_path().join(path)
+}
+
+pub fn read_resource(path: &str) -> Vec<u8> {
+    let full_path = resource_path(path);
+
+    std::fs::read(full_path).unwrap()
+}
+
+pub fn read_resource_to_string(path: &str) -> String {
+    let full_path = resource_path(path);
+
+    std::fs::read_to_string(full_path).unwrap()
+}
+
 pub fn load_assets<T>(
-    path: impl AsRef<Path>,
+    path: &str,
     ext: &str,
     mut loader: impl FnMut(&[u8]) -> T,
 ) -> HashMap<String, T> {
     let start = Instant::now();
 
-    let path = path.as_ref();
+    let path = resource_path(path);
     let mut assets = HashMap::new();
 
-    for entry in std::fs::read_dir(path).unwrap() {
+    for entry in std::fs::read_dir(&path).unwrap() {
         let path = entry.unwrap().path();
 
         let file_name = path.file_name().and_then(OsStr::to_str).unwrap();
