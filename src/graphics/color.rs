@@ -10,16 +10,23 @@ pub struct Color {
 }
 
 impl Color {
-    pub const BLACK: Color = Color::new(0.0, 0.0, 0.0, 1.0);
-    pub const WHITE: Color = Color::new(1.0, 1.0, 1.0, 1.0);
-    pub const TRANSPARENT: Color = Color::new(0.0, 0.0, 0.0, 0.0);
+    pub const BLACK: Color = Color::rgb(0.0, 0.0, 0.0);
+    pub const WHITE: Color = Color::rgb(1.0, 1.0, 1.0);
+    pub const RED: Color = Color::rgb(1.0, 0.0, 0.0);
+    pub const GREEN: Color = Color::rgb(0.0, 1.0, 0.0);
+    pub const BLUE: Color = Color::rgb(0.0, 0.0, 1.0);
+    pub const TRANSPARENT: Color = Color::rgba(0.0, 0.0, 0.0, 0.0);
 
-    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
+    pub const fn rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color { r, g, b, a }
+    }
+
+    pub const fn rgb(r: f32, g: f32, b: f32) -> Color {
+        Color { r, g, b, a: 1.0 }
     }
 
     // TODO: Not sure if this is the best API
     pub const fn alpha(a: f32) -> Color {
-        Color::new(a, a, a, a)
+        Color::rgba(a, a, a, a)
     }
 }
