@@ -37,6 +37,8 @@ impl App {
     }
 
     pub fn run(&mut self, event_handler: &mut impl EventHandler) {
+        self.timer.reset();
+
         while self.is_running {
             self.timer.tick();
 
