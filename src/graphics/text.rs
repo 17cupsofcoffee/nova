@@ -59,7 +59,7 @@ impl SpriteFont {
             let (metrics, data) = font.data.rasterize(ch, size);
 
             let image = if !data.is_empty() {
-                let data: Vec<u8> = data.into_iter().map(|x| [x, x, x, x]).flatten().collect();
+                let data: Vec<u8> = data.into_iter().flat_map(|x| [x, x, x, x]).collect();
 
                 let uv = packer
                     .insert(
