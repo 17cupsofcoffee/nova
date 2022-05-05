@@ -25,6 +25,26 @@ impl Color {
         Color { r, g, b, a: 1.0 }
     }
 
+    pub fn hex(mut hex: &str) -> Color {
+        if hex.starts_with('#') {
+            hex = &hex[1..];
+        }
+
+        assert!(hex.len() == 6 || hex.len() == 8);
+
+        let r = u32::from_str_radix(&hex[0..2], 16).unwrap() as f32;
+        let g = u32::from_str_radix(&hex[2..4], 16).unwrap() as f32;
+        let b = u32::from_str_radix(&hex[4..6], 16).unwrap() as f32;
+
+        let a = if hex.len() == 8 {
+            u32::from_str_radix(&hex[6..8], 16).unwrap() as f32
+        } else {
+            1.0
+        };
+
+        Color::rgba(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+    }
+
     // TODO: Not sure if this is the best API
     pub const fn alpha(a: f32) -> Color {
         Color::rgba(a, a, a, a)
