@@ -1,4 +1,4 @@
-use crate::graphics::{Graphics, Rectangle, Texture};
+use crate::graphics::{Graphics, IRectangle, Texture};
 
 /// An individual shelf within the packed atlas, tracking how much space
 /// is currently taken up.
@@ -40,7 +40,7 @@ impl ShelfPacker {
         width: i32,
         height: i32,
         padding: i32,
-    ) -> Option<Rectangle<i32>> {
+    ) -> Option<IRectangle> {
         let padded_width = width + padding * 2;
         let padded_height = height + padding * 2;
 
@@ -58,7 +58,7 @@ impl ShelfPacker {
     /// and returns the position.
     ///
     /// If it would not fit into the remaining space, `None` will be returned.
-    fn find_space(&mut self, source_width: i32, source_height: i32) -> Option<Rectangle<i32>> {
+    fn find_space(&mut self, source_width: i32, source_height: i32) -> Option<IRectangle> {
         let texture_width = self.texture.width();
         let texture_height = self.texture.height();
 
@@ -72,7 +72,7 @@ impl ShelfPacker {
                 let position = (shelf.current_x, shelf.start_y);
                 shelf.current_x += source_width;
 
-                Rectangle::new(position.0, position.1, source_width, source_height)
+                IRectangle::new(position.0, position.1, source_width, source_height)
             })
             .or_else(|| {
                 if self.next_y + source_height < texture_height {
@@ -87,7 +87,7 @@ impl ShelfPacker {
 
                     self.next_y += source_height;
 
-                    Some(Rectangle::new(
+                    Some(IRectangle::new(
                         position.0,
                         position.1,
                         source_width,
