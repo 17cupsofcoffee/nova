@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
-#[derive(Copy, Clone, Zeroable, Pod)]
+#[derive(Copy, Clone, Zeroable, Pod, Debug)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -39,7 +39,7 @@ impl Color {
         let a = if hex.len() == 8 {
             u32::from_str_radix(&hex[6..8], 16).unwrap() as f32
         } else {
-            1.0
+            255.0
         };
 
         Color::rgba(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
