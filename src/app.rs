@@ -40,7 +40,7 @@ impl App {
         self.timer.reset();
 
         while self.is_running {
-            self.timer.tick();
+            self.timer.tick_until_update_ready();
 
             self.handle_events();
 

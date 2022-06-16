@@ -2,58 +2,71 @@ use std::time::{Duration, Instant};
 
 pub struct Timer {
     last_time: Instant,
-    accumulator: Duration,
-    delta_time: Duration,
-    fixed_delta: Duration,
+    accumulated_time: Duration,
+    target_time: Duration,
     max_lag: Duration,
 }
 
 impl Timer {
     pub fn new(tick_rate: f64) -> Timer {
-        let fixed_delta = Duration::from_secs_f64(1.0 / tick_rate);
+        let target_time = Duration::from_secs_f64(1.0 / tick_rate);
 
         Timer {
             last_time: Instant::now(),
-            accumulator: Duration::ZERO,
-            delta_time: Duration::ZERO,
-            fixed_delta,
-            max_lag: fixed_delta * 8,
+            accumulated_time: Duration::ZERO,
+            target_time,
+            max_lag: target_time * 8,
         }
     }
 
     pub fn tick(&mut self) {
-        let curr_time = Instant::now();
+        self.advance_time();
+        self.cap_accumulated_time();
+    }
 
-        self.delta_time = curr_time - self.last_time;
-        self.accumulator = Duration::min(self.accumulator + self.delta_time, self.max_lag);
-        self.last_time = curr_time;
+    pub fn tick_until_update_ready(&mut self) {
+        self.advance_time();
+
+        // TODO: This isn't accurate enough - need to sleep and then spin.
+        while self.accumulated_time < self.target_time {
+            std::thread::sleep(Duration::from_millis(1));
+
+            self.advance_time();
+        }
+
+        self.cap_accumulated_time();
     }
 
     pub fn reset(&mut self) {
         self.last_time = Instant::now();
-        self.accumulator = Duration::ZERO;
-        self.delta_time = Duration::ZERO;
-    }
-
-    pub fn delta_time(&self) -> Duration {
-        self.delta_time
-    }
-
-    pub fn fixed_delta(&self) -> Duration {
-        self.fixed_delta
-    }
-
-    pub fn blend_factor(&self) -> f32 {
-        self.accumulator.as_secs_f32() / self.fixed_delta.as_secs_f32()
+        self.accumulated_time = Duration::ZERO;
     }
 
     pub fn check_update_ready(&mut self) -> bool {
-        let ready = self.accumulator >= self.fixed_delta;
+        let ready = self.accumulated_time >= self.target_time;
 
         if ready {
-            self.accumulator -= self.fixed_delta;
+            self.accumulated_time -= self.target_time;
         }
 
         ready
+    }
+
+    pub fn blend_factor(&self) -> f32 {
+        self.accumulated_time.as_secs_f32() / self.target_time.as_secs_f32()
+    }
+
+    fn advance_time(&mut self) {
+        let current_time = Instant::now();
+        let time_advanced = current_time - self.last_time;
+
+        self.accumulated_time += time_advanced;
+        self.last_time = current_time;
+    }
+
+    fn cap_accumulated_time(&mut self) {
+        if self.accumulated_time > self.max_lag {
+            self.accumulated_time = self.max_lag;
+        }
     }
 }
