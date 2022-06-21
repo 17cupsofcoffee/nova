@@ -52,6 +52,10 @@ impl Timer {
         ready
     }
 
+    pub fn delta(&self) -> Duration {
+        self.target_time
+    }
+
     pub fn blend_factor(&self) -> f32 {
         self.accumulated_time.as_secs_f32() / self.target_time.as_secs_f32()
     }
