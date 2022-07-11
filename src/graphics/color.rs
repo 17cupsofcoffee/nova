@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
-#[derive(Copy, Clone, Zeroable, Pod, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Zeroable, Pod)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
