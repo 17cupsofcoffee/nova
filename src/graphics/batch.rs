@@ -1,3 +1,4 @@
+use bytemuck::{Pod, Zeroable};
 use glam::{Mat3, Vec2};
 
 use crate::graphics::{
@@ -83,8 +84,19 @@ impl DrawParams {
     }
 }
 
+#[derive(Copy, Clone, Zeroable, Pod)]
+#[repr(C)]
+struct Sprite {
+    // The order of these fields matters, as it'll determine the
+    // winding order of the quad.
+    top_left: Vertex,
+    bottom_left: Vertex,
+    bottom_right: Vertex,
+    top_right: Vertex,
+}
+
 struct Batch {
-    indices: usize,
+    sprites: usize,
     texture: Option<Texture>,
 }
 
@@ -93,7 +105,7 @@ pub struct Batcher {
     default_texture: Texture,
     default_shader: Shader,
 
-    vertices: Vec<Vertex>,
+    sprites: Vec<Sprite>,
     batches: Vec<Batch>,
 }
 
@@ -117,9 +129,9 @@ impl Batcher {
         Batcher {
             mesh,
 
-            vertices: Vec::new(),
+            sprites: Vec::new(),
             batches: vec![Batch {
-                indices: 0,
+                sprites: 0,
                 texture: None,
             }],
 
@@ -129,32 +141,37 @@ impl Batcher {
     }
 
     pub fn draw(&mut self, gfx: &Graphics, target: &impl Target) {
-        // TODO: This doesn't handle batches that are larger than MAX_VERTICES
-        // very well
-        self.mesh.set_vertices(&self.vertices);
+        let mut index = 0;
 
-        let mut index_start = 0;
-
-        for batch in &self.batches {
+        for mut batch in self.batches.drain(..) {
             let texture = batch.texture.as_ref().unwrap_or(&self.default_texture);
 
-            gfx.draw(RenderPass {
-                target,
-                mesh: &self.mesh,
-                texture,
-                shader: &self.default_shader,
-                index_start,
-                index_count: batch.indices,
-            });
+            while batch.sprites > 0 {
+                let num_sprites = usize::min(batch.sprites, MAX_SPRITES);
 
-            index_start += batch.indices;
+                let sprites = &self.sprites[index..index + num_sprites];
+                let vertices = bytemuck::cast_slice(sprites);
+
+                self.mesh.set_vertices(vertices);
+
+                gfx.draw(RenderPass {
+                    target,
+                    mesh: &self.mesh,
+                    texture,
+                    shader: &self.default_shader,
+                    index_start: 0,
+                    index_count: num_sprites * 6,
+                });
+
+                index += num_sprites;
+                batch.sprites -= num_sprites;
+            }
         }
 
-        self.batches.clear();
-        self.vertices.clear();
+        self.sprites.clear();
 
         self.batches.push(Batch {
-            indices: 0,
+            sprites: 0,
             texture: None,
         });
     }
@@ -297,25 +314,25 @@ impl Batcher {
         ));
         let tr = transform.transform_point2(Vec2::new(dest.width * params.scale.x, 0.0));
 
-        self.vertices.extend_from_slice(&[
-            Vertex::new(tl, source.top_left(), params.color),
-            Vertex::new(bl, source.bottom_left(), params.color),
-            Vertex::new(br, source.bottom_right(), params.color),
-            Vertex::new(tr, source.top_right(), params.color),
-        ]);
+        self.sprites.push(Sprite {
+            top_left: Vertex::new(tl, source.top_left(), params.color),
+            bottom_left: Vertex::new(bl, source.bottom_left(), params.color),
+            bottom_right: Vertex::new(br, source.bottom_right(), params.color),
+            top_right: Vertex::new(tr, source.top_right(), params.color),
+        });
 
         let batch = self.batches.last_mut().expect("should always exist");
 
-        if batch.indices == 0 {
-            batch.indices = 6;
+        if batch.sprites == 0 {
+            batch.sprites = 1;
             batch.texture = texture.cloned();
         } else if batch.texture.as_ref() != texture {
             self.batches.push(Batch {
-                indices: 6,
+                sprites: 1,
                 texture: texture.cloned(),
             });
         } else {
-            batch.indices += 6;
+            batch.sprites += 1;
         }
     }
 }
