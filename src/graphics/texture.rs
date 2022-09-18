@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use glow::{HasContext, PixelUnpackData};
 
+use crate::assets;
 use crate::graphics::{Graphics, State};
 
 pub struct TextureInner {
@@ -29,7 +30,12 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
+    pub fn from_file(gfx: &Graphics, path: &str, premultiply: bool) -> Texture {
+        let bytes = assets::read_resource(path);
+        assets::load_png(gfx, &bytes, premultiply)
+    }
+
+    pub fn from_data(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
         unsafe {
             assert_eq!(width as usize * height as usize * 4, data.len());
 
@@ -93,7 +99,7 @@ impl Texture {
     }
 
     pub fn empty(gfx: &Graphics, width: i32, height: i32) -> Texture {
-        Texture::new(
+        Texture::from_data(
             gfx,
             width,
             height,

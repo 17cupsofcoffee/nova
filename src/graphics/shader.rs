@@ -27,7 +27,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn new(gfx: &Graphics, vertex_src: &str, fragment_src: &str) -> Shader {
+    pub fn from_str(gfx: &Graphics, vertex_src: &str, fragment_src: &str) -> Shader {
         unsafe {
             let program = gfx.state.gl.create_program().unwrap();
 
