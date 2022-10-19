@@ -31,7 +31,7 @@ pub struct Texture {
 
 impl Texture {
     pub fn from_file(gfx: &Graphics, path: &str, premultiply: bool) -> Texture {
-        let bytes = assets::read_resource(path);
+        let bytes = assets::read(path);
         assets::load_png(gfx, &bytes, premultiply)
     }
 
