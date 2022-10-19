@@ -72,4 +72,8 @@ impl Window {
             self.visible = true;
         }
     }
+
+    pub fn set_title(&mut self, title: &str) {
+        let _ = self.window.set_title(title);
+    }
 }
