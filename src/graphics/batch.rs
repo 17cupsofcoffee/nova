@@ -95,6 +95,7 @@ struct Sprite {
     top_right: Vertex,
 }
 
+#[derive(Clone, Default)]
 struct Batch {
     sprites: usize,
     texture: Option<Texture>,
@@ -130,10 +131,7 @@ impl Batcher {
             mesh,
 
             sprites: Vec::new(),
-            batches: vec![Batch {
-                sprites: 0,
-                texture: None,
-            }],
+            batches: vec![Batch::default()],
 
             default_texture,
             default_shader,
@@ -169,11 +167,7 @@ impl Batcher {
         }
 
         self.sprites.clear();
-
-        self.batches.push(Batch {
-            sprites: 0,
-            texture: None,
-        });
+        self.batches.push(Batch::default());
     }
 
     pub fn rect(&mut self, rect: Rectangle, params: DrawParams) {
@@ -327,10 +321,12 @@ impl Batcher {
             batch.sprites = 1;
             batch.texture = texture.cloned();
         } else if batch.texture.as_ref() != texture {
-            self.batches.push(Batch {
-                sprites: 1,
-                texture: texture.cloned(),
-            });
+            let mut new_batch = batch.clone();
+
+            new_batch.sprites = 1;
+            new_batch.texture = texture.cloned();
+
+            self.batches.push(new_batch);
         } else {
             batch.sprites += 1;
         }
