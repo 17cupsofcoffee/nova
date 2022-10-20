@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use fontdue::{Font as FontdueFont, FontSettings};
 use glam::Vec2;
 
+use crate::assets;
 use crate::graphics::{Color, Graphics, Rectangle, Texture};
 
 use self::packer::ShelfPacker;
@@ -17,7 +18,12 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn new(data: &[u8]) -> Font {
+    pub fn from_file(path: &str) -> Font {
+        let bytes = assets::read(path);
+        Font::from_data(&bytes)
+    }
+
+    pub fn from_data(data: &[u8]) -> Font {
         Font {
             data: FontdueFont::from_bytes(data, FontSettings::default()).unwrap(),
         }
