@@ -3,7 +3,7 @@
 // ===== Core =====
 
 pub mod app;
-pub mod assets;
+pub mod fs;
 pub mod graphics;
 pub mod input;
 pub mod time;

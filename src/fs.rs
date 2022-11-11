@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::time::Instant;
 
 use once_cell::sync::OnceCell;
 use png::{BitDepth, ColorType, Decoder};
@@ -29,37 +26,6 @@ pub fn read_to_string(path: &str) -> String {
     let full_path = asset_path(path);
 
     std::fs::read_to_string(full_path).unwrap()
-}
-
-pub fn load_assets<T>(
-    path: &str,
-    ext: &str,
-    mut loader: impl FnMut(&[u8]) -> T,
-) -> HashMap<String, T> {
-    let start = Instant::now();
-
-    let path = asset_path(path);
-    let mut assets = HashMap::new();
-
-    for entry in std::fs::read_dir(&path).unwrap() {
-        let path = entry.unwrap().path();
-
-        let file_name = path.file_name().and_then(OsStr::to_str).unwrap();
-        let file_stem = path.file_stem().and_then(OsStr::to_str).unwrap();
-
-        if file_name.ends_with(ext) {
-            let bytes = std::fs::read(&path).unwrap();
-            let asset = loader(&bytes);
-
-            assets.insert(file_stem.to_owned(), asset);
-        }
-    }
-
-    let end = Instant::now();
-
-    println!("Loading {} took {:?}", path.display(), end - start);
-
-    assets
 }
 
 pub fn load_png(gfx: &Graphics, bytes: &[u8], premultiply: bool) -> Texture {

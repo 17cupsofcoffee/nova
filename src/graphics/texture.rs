@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use glow::{HasContext, PixelUnpackData};
 
-use crate::assets;
+use crate::fs;
 use crate::graphics::{Graphics, State};
 
 pub struct TextureInner {
@@ -31,8 +31,8 @@ pub struct Texture {
 
 impl Texture {
     pub fn from_file(gfx: &Graphics, path: &str, premultiply: bool) -> Texture {
-        let bytes = assets::read(path);
-        assets::load_png(gfx, &bytes, premultiply)
+        let bytes = fs::read(path);
+        fs::load_png(gfx, &bytes, premultiply)
     }
 
     pub fn from_data(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
