@@ -10,7 +10,7 @@ edition = "2021"
 sdl2 = "0.35"
 glow = "0.11"
 bytemuck = { version = "1.9", features = ["derive"] }
-glam = { version = "0.21", features = ["bytemuck"] }
+glam = { version = "0.22", features = ["bytemuck"] }
 fontdue = "0.7"
 png = "0.17"
 once_cell = "1.12"
