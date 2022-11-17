@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat3, Vec2};
+use glam::Vec2;
 
 use crate::graphics::{
     Color, Graphics, Mesh, Rectangle, RenderPass, Shader, SpriteFont, Target, TextSegment, Texture,
@@ -295,18 +295,33 @@ impl Batcher {
         dest: Rectangle,
         params: DrawParams,
     ) {
-        // TODO: We could do this with trig if we wanted to optimize
-        let transform = Mat3::from_translation(dest.top_left())
-            * Mat3::from_rotation_z(params.rotation)
-            * Mat3::from_translation(-params.origin);
+        let fx = -params.origin.x * params.scale.x;
+        let fy = -params.origin.y * params.scale.y;
+        let fx2 = (dest.width - params.origin.x) * params.scale.x;
+        let fy2 = (dest.height - params.origin.y) * params.scale.y;
 
-        let tl = transform.transform_point2(Vec2::ZERO);
-        let bl = transform.transform_point2(Vec2::new(0.0, dest.height * params.scale.y));
-        let br = transform.transform_point2(Vec2::new(
-            dest.width * params.scale.x,
-            dest.height * params.scale.y,
-        ));
-        let tr = transform.transform_point2(Vec2::new(dest.width * params.scale.x, 0.0));
+        let sin = params.rotation.sin();
+        let cos = params.rotation.cos();
+
+        let tl = Vec2::new(
+            dest.x + (cos * fx) - (sin * fy),
+            dest.y + (sin * fx) + (cos * fy),
+        );
+
+        let bl = Vec2::new(
+            dest.x + (cos * fx) - (sin * fy2),
+            dest.y + (sin * fx) + (cos * fy2),
+        );
+
+        let br = Vec2::new(
+            dest.x + (cos * fx2) - (sin * fy2),
+            dest.y + (sin * fx2) + (cos * fy2),
+        );
+
+        let tr = Vec2::new(
+            dest.x + (cos * fx2) - (sin * fy),
+            dest.y + (sin * fx2) + (cos * fy),
+        );
 
         self.sprites.push(Sprite {
             top_left: Vertex::new(tl, source.top_left(), params.color),
