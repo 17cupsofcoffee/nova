@@ -22,6 +22,15 @@ macro_rules! rect {
                 }
             }
 
+            pub const fn from_point(point: $point, width: $t, height: $t) -> $rect {
+                $rect {
+                    x: point.x,
+                    y: point.y,
+                    width,
+                    height,
+                }
+            }
+
             pub fn left(&self) -> $t {
                 self.x
             }
