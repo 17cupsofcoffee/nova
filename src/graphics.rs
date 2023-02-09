@@ -217,9 +217,7 @@ impl Graphics {
                 .as_ref(),
             );
 
-            self.state
-                .gl
-                .viewport(0, 0, target_width as i32, target_height as i32);
+            self.state.gl.viewport(0, 0, target_width, target_height);
 
             self.state.gl.draw_elements(
                 glow::TRIANGLES,

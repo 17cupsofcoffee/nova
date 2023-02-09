@@ -97,7 +97,7 @@ impl LayerInstance {
 
                     Some(IntGridTile {
                         position: IVec2::new(x as i32, y as i32),
-                        value: *val as i32,
+                        value: *val,
                     })
                 } else {
                     None
