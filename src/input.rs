@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 use fermium::prelude::*;
 use glam::Vec2;
@@ -6,16 +7,9 @@ use glam::Vec2;
 use crate::window::sdl_panic;
 
 pub struct Input {
-    keys_down: HashSet<Key>,
-    keys_pressed: HashSet<Key>,
-    keys_released: HashSet<Key>,
-
-    mouse_buttons_down: HashSet<MouseButton>,
-    mouse_buttons_pressed: HashSet<MouseButton>,
-    mouse_buttons_released: HashSet<MouseButton>,
-
+    keys: ButtonState<Key>,
+    mouse_buttons: ButtonState<MouseButton>,
     mouse_position: Vec2,
-
     gamepads: Vec<Option<Gamepad>>,
     joystick_ids: HashMap<SDL_JoystickID, usize>,
 }
@@ -23,16 +17,9 @@ pub struct Input {
 impl Input {
     pub fn new() -> Input {
         Input {
-            keys_down: HashSet::new(),
-            keys_pressed: HashSet::new(),
-            keys_released: HashSet::new(),
-
-            mouse_buttons_down: HashSet::new(),
-            mouse_buttons_pressed: HashSet::new(),
-            mouse_buttons_released: HashSet::new(),
-
+            keys: ButtonState::new(),
+            mouse_buttons: ButtonState::new(),
             mouse_position: Vec2::ZERO,
-
             gamepads: Vec::new(),
             joystick_ids: HashMap::new(),
         }
@@ -43,41 +30,25 @@ impl Input {
             match event.type_ {
                 SDL_KEYDOWN if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        let was_up = self.keys_down.insert(key);
-
-                        if was_up {
-                            self.keys_pressed.insert(key);
-                        }
+                        self.keys.set_down(key);
                     }
                 }
 
                 SDL_KEYUP if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        let was_down = self.keys_down.remove(&key);
-
-                        if was_down {
-                            self.keys_released.insert(key);
-                        }
+                        self.keys.set_up(key);
                     }
                 }
 
                 SDL_MOUSEBUTTONDOWN => {
                     if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        let was_up = self.mouse_buttons_down.insert(button);
-
-                        if was_up {
-                            self.mouse_buttons_pressed.insert(button);
-                        }
+                        self.mouse_buttons.set_down(button);
                     }
                 }
 
                 SDL_MOUSEBUTTONUP => {
                     if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        let was_down = self.mouse_buttons_down.remove(&button);
-
-                        if was_down {
-                            self.mouse_buttons_released.insert(button);
-                        }
+                        self.mouse_buttons.set_up(button);
                     }
                 }
 
@@ -134,11 +105,7 @@ impl Input {
                     )) {
                         if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
                             if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
-                                let was_up = gamepad.buttons_down.insert(button);
-
-                                if was_up {
-                                    gamepad.buttons_pressed.insert(button);
-                                }
+                                gamepad.buttons.set_down(button);
                             }
                         }
                     }
@@ -150,11 +117,7 @@ impl Input {
                     )) {
                         if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
                             if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
-                                let was_down = gamepad.buttons_down.remove(&button);
-
-                                if was_down {
-                                    gamepad.buttons_released.insert(button);
-                                }
+                                gamepad.buttons.set_up(button);
                             }
                         }
                     }
@@ -187,70 +150,67 @@ impl Input {
     }
 
     pub fn clear(&mut self) {
-        self.keys_pressed.clear();
-        self.keys_released.clear();
-        self.mouse_buttons_pressed.clear();
-        self.mouse_buttons_released.clear();
+        self.keys.clear();
+        self.mouse_buttons.clear();
 
         for gamepad in self.gamepads.iter_mut().flatten() {
-            gamepad.buttons_pressed.clear();
-            gamepad.buttons_released.clear();
+            gamepad.buttons.clear();
         }
     }
 
     pub fn is_key_down(&self, key: Key) -> bool {
-        self.keys_down.contains(&key)
+        self.keys.is_down(key)
     }
 
     pub fn is_key_up(&self, key: Key) -> bool {
-        !self.keys_down.contains(&key)
+        self.keys.is_up(key)
     }
 
     pub fn is_key_pressed(&self, key: Key) -> bool {
-        self.keys_pressed.contains(&key)
+        self.keys.is_pressed(key)
     }
 
     pub fn is_key_released(&self, key: Key) -> bool {
-        self.keys_released.contains(&key)
+        self.keys.is_released(key)
     }
 
     pub fn is_mouse_button_down(&self, btn: MouseButton) -> bool {
-        self.mouse_buttons_down.contains(&btn)
+        self.mouse_buttons.is_down(btn)
     }
 
     pub fn is_mouse_button_up(&self, btn: MouseButton) -> bool {
-        !self.mouse_buttons_down.contains(&btn)
+        self.mouse_buttons.is_up(btn)
     }
 
     pub fn is_mouse_button_pressed(&self, btn: MouseButton) -> bool {
-        self.mouse_buttons_pressed.contains(&btn)
+        self.mouse_buttons.is_pressed(btn)
     }
 
     pub fn is_mouse_button_released(&self, btn: MouseButton) -> bool {
-        self.mouse_buttons_released.contains(&btn)
+        self.mouse_buttons.is_released(btn)
     }
 
     pub fn is_gamepad_button_down(&self, player: usize, btn: GamepadButton) -> bool {
         self.get_gamepad(player)
-            .map(|g| g.buttons_down.contains(&btn))
+            .map(|g| g.buttons.is_down(btn))
             .unwrap_or(false)
     }
 
     pub fn is_gamepad_button_up(&self, player: usize, btn: GamepadButton) -> bool {
         self.get_gamepad(player)
-            .map(|g| !g.buttons_down.contains(&btn))
+            .map(|g| g.buttons.is_up(btn))
             .unwrap_or(true)
     }
 
     pub fn is_gamepad_button_pressed(&self, player: usize, btn: GamepadButton) -> bool {
         self.get_gamepad(player)
-            .map(|g| g.buttons_pressed.contains(&btn))
+            .map(|g| g.buttons.is_pressed(btn))
             .unwrap_or(false)
     }
 
     pub fn is_gamepad_button_released(&self, player: usize, btn: GamepadButton) -> bool {
         self.get_gamepad(player)
-            .map(|g| g.buttons_released.contains(&btn))
+            .map(|g| g.buttons.is_released(btn))
             .unwrap_or(false)
     }
 
@@ -286,6 +246,62 @@ impl Input {
 
     fn get_gamepad_mut(&mut self, player: usize) -> Option<&mut Gamepad> {
         self.gamepads.get_mut(player).and_then(|slot| slot.as_mut())
+    }
+}
+
+struct ButtonState<T> {
+    down: HashSet<T>,
+    pressed: HashSet<T>,
+    released: HashSet<T>,
+}
+
+impl<T> ButtonState<T>
+where
+    T: Copy + Eq + Hash,
+{
+    fn new() -> ButtonState<T> {
+        ButtonState {
+            down: HashSet::new(),
+            pressed: HashSet::new(),
+            released: HashSet::new(),
+        }
+    }
+
+    fn clear(&mut self) {
+        self.pressed.clear();
+        self.released.clear();
+    }
+
+    fn set_down(&mut self, button: T) {
+        let was_up = self.down.insert(button);
+
+        if was_up {
+            self.pressed.insert(button);
+        }
+    }
+
+    fn set_up(&mut self, button: T) {
+        let was_down = self.down.remove(&button);
+
+        if was_down {
+            self.released.insert(button);
+        }
+    }
+
+    fn is_down(&self, button: T) -> bool {
+        self.down.contains(&button)
+    }
+
+    fn is_up(&self, button: T) -> bool {
+        !self.down.contains(&button)
+    }
+
+    fn is_pressed(&self, button: T) -> bool {
+        self.pressed.contains(&button)
+    }
+
+    fn is_released(&self, button: T) -> bool {
+        self.released.contains(&button)
     }
 }
 
@@ -391,10 +407,7 @@ impl MouseButton {
 struct Gamepad {
     handle: *mut SDL_GameController,
 
-    buttons_down: HashSet<GamepadButton>,
-    buttons_pressed: HashSet<GamepadButton>,
-    buttons_released: HashSet<GamepadButton>,
-
+    buttons: ButtonState<GamepadButton>,
     left_stick: Vec2,
     right_stick: Vec2,
     left_trigger: f32,
@@ -406,10 +419,7 @@ impl Gamepad {
         Gamepad {
             handle: raw,
 
-            buttons_down: HashSet::new(),
-            buttons_pressed: HashSet::new(),
-            buttons_released: HashSet::new(),
-
+            buttons: ButtonState::new(),
             left_stick: Vec2::ZERO,
             right_stick: Vec2::ZERO,
             left_trigger: 0.0,
