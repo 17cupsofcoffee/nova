@@ -313,6 +313,7 @@ keys! {
     Enter => SDL_SCANCODE_RETURN,
     Tab => SDL_SCANCODE_TAB,
     CapsLock => SDL_SCANCODE_CAPSLOCK,
+    Escape => SDL_SCANCODE_ESCAPE,
 
     LeftShift => SDL_SCANCODE_LSHIFT,
     LeftCtrl => SDL_SCANCODE_LCTRL,
