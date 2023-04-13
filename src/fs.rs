@@ -6,6 +6,7 @@ use png::{BitDepth, ColorType, Decoder};
 use crate::graphics::{Graphics, Texture};
 
 pub fn base_path() -> &'static PathBuf {
+    // TODO: Switch to using std once 1.70 comes out
     static BASE_PATH: OnceCell<PathBuf> = OnceCell::new();
 
     // TODO: Make this use SDL_GetBaseDir when packaging for release
