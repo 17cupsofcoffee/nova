@@ -1,4 +1,4 @@
-use sdl2::event::Event;
+use fermium::prelude::SDL_QUIT;
 
 use crate::graphics::Graphics;
 use crate::input::Input;
@@ -58,8 +58,10 @@ impl App {
 
     pub fn handle_events(&mut self) {
         while let Some(event) = self.window.next_event() {
-            if let Event::Quit { .. } = event {
-                self.is_running = false;
+            unsafe {
+                if event.type_ == SDL_QUIT {
+                    self.is_running = false;
+                }
             }
 
             self.input.event(&event);

@@ -1,79 +1,165 @@
-use glow::Context;
-use sdl2::video::{GLContext, SwapInterval, Window as SdlWindow};
-use sdl2::{EventPump, Sdl, VideoSubsystem};
+use std::ffi::CString;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-pub use sdl2::event::Event;
+use fermium::prelude::*;
+
+use glow::Context;
+
+static SDL_INIT: AtomicBool = AtomicBool::new(false);
 
 pub struct Window {
-    _sdl: Sdl,
-    video: VideoSubsystem,
-    event_pump: EventPump,
-    window: SdlWindow,
-    _gl: GLContext,
+    window: *mut SDL_Window,
+    gl: SDL_GLContext,
 
     visible: bool,
 }
 
 impl Window {
     pub fn new(title: &str, width: u32, height: u32) -> Window {
-        let sdl = sdl2::init().unwrap();
-        let video = sdl.video().unwrap();
-        let event_pump = sdl.event_pump().unwrap();
+        unsafe {
+            if SDL_INIT.load(Ordering::Relaxed) {
+                panic!("SDL already initialized");
+            }
 
-        let gl_attr = video.gl_attr();
-        gl_attr.set_context_version(3, 3);
-        gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-        gl_attr.set_context_flags().forward_compatible().set();
-        gl_attr.set_double_buffer(true);
+            if SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0 {
+                sdl_panic!();
+            }
 
-        let window = video
-            .window(title, width, height)
-            .position_centered()
-            .opengl()
-            .resizable()
-            .hidden()
-            .build()
-            .unwrap();
+            SDL_INIT.store(true, Ordering::Relaxed);
 
-        video.disable_screen_saver();
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+            SDL_GL_SetAttribute(
+                SDL_GL_CONTEXT_PROFILE_MASK,
+                SDL_GL_CONTEXT_PROFILE_CORE.0 as i32,
+            );
+            SDL_GL_SetAttribute(
+                SDL_GL_CONTEXT_FLAGS,
+                SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG.0 as i32,
+            );
+            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-        let _gl = window.gl_create_context().unwrap();
+            let c_title = CString::new(title).unwrap();
 
-        let _ = video.gl_set_swap_interval(SwapInterval::VSync);
+            let window = SDL_CreateWindow(
+                c_title.as_ptr(),
+                SDL_WINDOWPOS_CENTERED,
+                SDL_WINDOWPOS_CENTERED,
+                width as i32,
+                height as i32,
+                (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN).0,
+            );
 
-        Window {
-            _sdl: sdl,
-            video,
-            event_pump,
-            window,
-            _gl,
+            if window.is_null() {
+                sdl_panic!();
+            }
 
-            visible: false,
+            SDL_DisableScreenSaver();
+
+            let gl = SDL_GL_CreateContext(window);
+
+            if gl.is_null() {
+                sdl_panic!();
+            }
+
+            SDL_GL_SetSwapInterval(1);
+
+            Window {
+                window,
+                gl,
+
+                visible: false,
+            }
         }
     }
 
     pub fn size(&self) -> (u32, u32) {
-        self.window.drawable_size()
+        unsafe {
+            let mut w = 0;
+            let mut h = 0;
+
+            SDL_GL_GetDrawableSize(self.window, &mut w, &mut h);
+
+            (w as u32, h as u32)
+        }
     }
 
     pub fn load_gl(&self) -> Context {
-        unsafe { Context::from_loader_function(|s| self.video.gl_get_proc_address(s) as *const _) }
+        unsafe {
+            Context::from_loader_function(|s| {
+                let c_str = CString::new(s).unwrap();
+                SDL_GL_GetProcAddress(c_str.as_ptr())
+            })
+        }
     }
 
-    pub fn next_event(&mut self) -> Option<Event> {
-        self.event_pump.poll_event()
+    pub fn next_event(&mut self) -> Option<SDL_Event> {
+        unsafe {
+            let mut event = SDL_Event::default();
+
+            if SDL_PollEvent(&mut event) == 1 {
+                Some(event)
+            } else {
+                None
+            }
+        }
     }
 
     pub fn present(&mut self) {
-        self.window.gl_swap_window();
+        unsafe {
+            SDL_GL_SwapWindow(self.window);
 
-        if !self.visible {
-            self.window.show();
-            self.visible = true;
+            if !self.visible {
+                SDL_ShowWindow(self.window);
+                self.visible = true;
+            }
         }
     }
 
     pub fn set_title(&mut self, title: &str) {
-        let _ = self.window.set_title(title);
+        let c_title = CString::new(title).unwrap();
+
+        unsafe {
+            SDL_SetWindowTitle(self.window, c_title.as_ptr());
+        }
     }
 }
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        unsafe {
+            SDL_GL_DeleteContext(self.gl);
+            SDL_DestroyWindow(self.window);
+        }
+    }
+}
+
+pub(crate) unsafe fn get_err() -> String {
+    let mut v: Vec<u8> = Vec::with_capacity(1024);
+    let capacity = v.capacity();
+
+    SDL_GetErrorMsg(v.as_mut_ptr().cast(), capacity.try_into().unwrap());
+
+    let mut len = 0;
+    let mut p = v.as_mut_ptr();
+
+    while *p != 0 && len <= capacity {
+        p = p.add(1);
+        len += 1;
+    }
+
+    v.set_len(len);
+
+    match String::from_utf8(v) {
+        Ok(s) => s,
+        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+    }
+}
+
+macro_rules! sdl_panic {
+    () => {
+        panic!("SDL error: {}", $crate::window::get_err());
+    };
+}
+
+pub(crate) use sdl_panic;

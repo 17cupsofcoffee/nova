@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 # Core
-sdl2 = "0.35"
+fermium = "22604.0.0"
 glow = "0.12"
 bytemuck = { version = "1.9", features = ["derive"] }
 glam = { version = "0.23", features = ["bytemuck"] }
