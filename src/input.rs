@@ -41,7 +41,7 @@ impl Input {
     pub fn event(&mut self, event: &SDL_Event) {
         unsafe {
             match event.type_ {
-                SDL_KEYDOWN if event.key.repeat != 0 => {
+                SDL_KEYDOWN if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
                         let was_up = self.keys_down.insert(key);
 
@@ -51,7 +51,7 @@ impl Input {
                     }
                 }
 
-                SDL_KEYUP if event.key.repeat != 0 => {
+                SDL_KEYUP if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
                         let was_down = self.keys_down.remove(&key);
 
