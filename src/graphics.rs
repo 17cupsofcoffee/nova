@@ -2,6 +2,7 @@ mod batch;
 mod canvas;
 mod color;
 mod mesh;
+mod packer;
 mod rectangle;
 mod scaling;
 mod shader;

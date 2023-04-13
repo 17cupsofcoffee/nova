@@ -1,5 +1,3 @@
-mod packer;
-
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -7,9 +5,8 @@ use fontdue::{Font as FontdueFont, FontSettings};
 use glam::Vec2;
 
 use crate::fs;
+use crate::graphics::packer::ShelfPacker;
 use crate::graphics::{Color, Graphics, Rectangle, Texture};
-
-use self::packer::ShelfPacker;
 
 const ATLAS_PADDING: i32 = 1;
 
