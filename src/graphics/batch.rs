@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::Vec2;
+use glam::{BVec2, Vec2};
 
 use crate::graphics::{
     Color, Graphics, Mesh, Rectangle, RenderPass, Shader, SpriteFont, Target, TextSegment, Texture,
@@ -51,6 +51,7 @@ pub struct DrawParams {
     origin: Vec2,
     scale: Vec2,
     rotation: f32,
+    flip: BVec2,
 }
 
 impl DrawParams {
@@ -60,6 +61,7 @@ impl DrawParams {
             origin: Vec2::ZERO,
             scale: Vec2::ONE,
             rotation: 0.0,
+            flip: BVec2::FALSE,
         }
     }
 
@@ -80,6 +82,16 @@ impl DrawParams {
 
     pub fn rotation(mut self, rotation: f32) -> Self {
         self.rotation = rotation;
+        self
+    }
+
+    pub fn flip_x(mut self, flip: bool) -> Self {
+        self.flip.x = flip;
+        self
+    }
+
+    pub fn flip_y(mut self, flip: bool) -> Self {
+        self.flip.y = flip;
         self
     }
 }
@@ -323,11 +335,28 @@ impl Batcher {
             dest.y + (sin * fx2) + (cos * fy),
         );
 
+        let (l_offset, r_offset) = if params.flip.x {
+            (source.width, 0.0)
+        } else {
+            (0.0, source.width)
+        };
+
+        let (t_offset, b_offset) = if params.flip.y {
+            (source.height, 0.0)
+        } else {
+            (0.0, source.height)
+        };
+
+        let tl_uv = Vec2::new(source.x + l_offset, source.y + t_offset);
+        let bl_uv = Vec2::new(source.x + l_offset, source.y + b_offset);
+        let br_uv = Vec2::new(source.x + r_offset, source.y + b_offset);
+        let tr_uv = Vec2::new(source.x + r_offset, source.y + t_offset);
+
         self.sprites.push(Sprite {
-            top_left: Vertex::new(tl, source.top_left(), params.color),
-            bottom_left: Vertex::new(bl, source.bottom_left(), params.color),
-            bottom_right: Vertex::new(br, source.bottom_right(), params.color),
-            top_right: Vertex::new(tr, source.top_right(), params.color),
+            top_left: Vertex::new(tl, tl_uv, params.color),
+            bottom_left: Vertex::new(bl, bl_uv, params.color),
+            bottom_right: Vertex::new(br, br_uv, params.color),
+            top_right: Vertex::new(tr, tr_uv, params.color),
         });
 
         let batch = self.batches.last_mut().expect("should always exist");
