@@ -19,6 +19,10 @@ impl Project {
     pub fn get_level(&self, id: &str) -> Option<&Level> {
         self.levels.iter().find(|l| l.identifier == id)
     }
+
+    pub fn get_level_by_iid(&self, id: &str) -> Option<&Level> {
+        self.levels.iter().find(|l| l.iid == id)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -49,7 +53,12 @@ pub struct EnumTag {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Level {
+    #[serde(rename = "__neighbours")]
+    pub neighbours: Vec<Neighbour>,
+
     pub identifier: String,
+
+    pub iid: String,
 
     #[serde(default = "Vec::new")]
     pub layer_instances: Vec<LayerInstance>,
@@ -59,6 +68,14 @@ impl Level {
     pub fn get_layer(&self, id: &str) -> Option<&LayerInstance> {
         self.layer_instances.iter().find(|l| l.identifier == id)
     }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Neighbour {
+    // TODO: Might be nice to turn this into an enum
+    pub dir: String,
+    pub level_iid: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
