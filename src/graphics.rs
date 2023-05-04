@@ -153,8 +153,8 @@ impl Graphics {
                 .bind_vertex_buffer(Some(pass.mesh.inner.vertex_buffer));
             self.state
                 .bind_index_buffer(Some(pass.mesh.inner.index_buffer));
-            self.state.bind_shader(Some(pass.shader.inner.id));
-            self.state.bind_texture(Some(pass.texture.inner.id));
+            self.state.bind_shader(Some(pass.shader.raw.id));
+            self.state.bind_texture(Some(pass.texture.raw.id));
 
             self.state.gl.vertex_attrib_pointer_f32(
                 0,
@@ -190,7 +190,7 @@ impl Graphics {
             let proj = self
                 .state
                 .gl
-                .get_uniform_location(pass.shader.inner.id, "u_projection")
+                .get_uniform_location(pass.shader.raw.id, "u_projection")
                 .unwrap();
 
             pass.target.bind(self);
@@ -258,7 +258,7 @@ impl Target for Canvas {
     const FLIPPED: bool = true;
 
     fn bind(&self, gfx: &Graphics) {
-        gfx.state.bind_canvas(Some(self.id));
+        gfx.state.bind_canvas(Some(self.raw.id));
 
         unsafe {
             gfx.state.gl.front_face(glow::CW);

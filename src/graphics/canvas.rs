@@ -4,9 +4,9 @@ use glow::HasContext;
 
 use crate::graphics::{Graphics, State, Texture};
 
+#[derive(Clone)]
 pub struct Canvas {
-    state: Rc<State>,
-    pub(crate) id: glow::Framebuffer,
+    pub(crate) raw: Rc<RawCanvas>,
     texture: Texture,
 }
 
@@ -23,13 +23,16 @@ impl Canvas {
                 glow::FRAMEBUFFER,
                 glow::COLOR_ATTACHMENT0,
                 glow::TEXTURE_2D,
-                Some(texture.inner.id),
+                Some(texture.raw.id),
                 0,
             );
 
             Canvas {
-                state: Rc::clone(&gfx.state),
-                id,
+                raw: Rc::new(RawCanvas {
+                    state: Rc::clone(&gfx.state),
+                    id,
+                }),
+
                 texture,
             }
         }
@@ -52,7 +55,12 @@ impl Canvas {
     }
 }
 
-impl Drop for Canvas {
+pub struct RawCanvas {
+    state: Rc<State>,
+    pub(crate) id: glow::Framebuffer,
+}
+
+impl Drop for RawCanvas {
     fn drop(&mut self) {
         unsafe {
             self.state.gl.delete_framebuffer(self.id);

@@ -5,28 +5,9 @@ use glow::{HasContext, PixelUnpackData};
 use crate::fs;
 use crate::graphics::{Graphics, State};
 
-pub struct TextureInner {
-    state: Rc<State>,
-    pub(crate) id: glow::Texture,
-    width: i32,
-    height: i32,
-}
-
-impl Drop for TextureInner {
-    fn drop(&mut self) {
-        unsafe {
-            self.state.gl.delete_texture(self.id);
-
-            if self.state.current_texture.get() == Some(self.id) {
-                self.state.current_texture.set(None);
-            }
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct Texture {
-    pub(crate) inner: Rc<TextureInner>,
+    pub(crate) raw: Rc<RawTexture>,
 }
 
 impl Texture {
@@ -88,7 +69,7 @@ impl Texture {
             );
 
             Texture {
-                inner: Rc::new(TextureInner {
+                raw: Rc::new(RawTexture {
                     state: Rc::clone(&gfx.state),
                     id,
                     width,
@@ -108,34 +89,31 @@ impl Texture {
     }
 
     pub fn width(&self) -> i32 {
-        self.inner.width
+        self.raw.width
     }
 
     pub fn height(&self) -> i32 {
-        self.inner.height
+        self.raw.height
     }
 
     pub fn size(&self) -> (i32, i32) {
-        (self.inner.width, self.inner.height)
+        (self.raw.width, self.raw.height)
     }
 
     pub fn set_data(&self, data: &[u8]) {
-        self.set_region(0, 0, self.inner.width, self.inner.height, data);
+        self.set_region(0, 0, self.raw.width, self.raw.height, data);
     }
 
     pub fn set_region(&self, x: i32, y: i32, width: i32, height: i32, data: &[u8]) {
         unsafe {
             assert_eq!(width as usize * height as usize * 4, data.len());
             assert!(
-                x >= 0
-                    && y >= 0
-                    && x + width <= self.inner.width
-                    && y + height <= self.inner.height
+                x >= 0 && y >= 0 && x + width <= self.raw.width && y + height <= self.raw.height
             );
 
-            self.inner.state.bind_texture(Some(self.inner.id));
+            self.raw.state.bind_texture(Some(self.raw.id));
 
-            self.inner.state.gl.tex_sub_image_2d(
+            self.raw.state.gl.tex_sub_image_2d(
                 glow::TEXTURE_2D,
                 0,
                 x,
@@ -152,6 +130,25 @@ impl Texture {
 
 impl PartialEq for Texture {
     fn eq(&self, other: &Self) -> bool {
-        self.inner.id == other.inner.id
+        self.raw.id == other.raw.id
+    }
+}
+
+pub struct RawTexture {
+    state: Rc<State>,
+    pub(crate) id: glow::Texture,
+    width: i32,
+    height: i32,
+}
+
+impl Drop for RawTexture {
+    fn drop(&mut self) {
+        unsafe {
+            self.state.gl.delete_texture(self.id);
+
+            if self.state.current_texture.get() == Some(self.id) {
+                self.state.current_texture.set(None);
+            }
+        }
     }
 }

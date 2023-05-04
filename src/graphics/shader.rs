@@ -4,26 +4,9 @@ use glow::HasContext;
 
 use crate::graphics::{Graphics, State};
 
-pub struct ShaderInner {
-    state: Rc<State>,
-    pub(crate) id: glow::Program,
-}
-
-impl Drop for ShaderInner {
-    fn drop(&mut self) {
-        unsafe {
-            self.state.gl.delete_program(self.id);
-
-            if self.state.current_shader.get() == Some(self.id) {
-                self.state.current_shader.set(None);
-            }
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct Shader {
-    pub(crate) inner: Rc<ShaderInner>,
+    pub(crate) raw: Rc<RawShader>,
 }
 
 impl Shader {
@@ -74,10 +57,27 @@ impl Shader {
             gfx.state.gl.uniform_1_i32(Some(&sampler), 0);
 
             Shader {
-                inner: Rc::new(ShaderInner {
+                raw: Rc::new(RawShader {
                     state: Rc::clone(&gfx.state),
                     id: program,
                 }),
+            }
+        }
+    }
+}
+
+pub struct RawShader {
+    state: Rc<State>,
+    pub(crate) id: glow::Program,
+}
+
+impl Drop for RawShader {
+    fn drop(&mut self) {
+        unsafe {
+            self.state.gl.delete_program(self.id);
+
+            if self.state.current_shader.get() == Some(self.id) {
+                self.state.current_shader.set(None);
             }
         }
     }
