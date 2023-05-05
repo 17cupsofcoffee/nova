@@ -42,6 +42,47 @@ impl State {
         unsafe {
             if self.current_vertex_buffer.get() != buffer {
                 self.gl.bind_buffer(glow::ARRAY_BUFFER, buffer);
+
+                if buffer.is_some() {
+                    // TODO: If I ever want to use something other than `Vertex` in a buffer
+                    // I'll need to rethink this code, but it's fine for now.
+
+                    self.gl.vertex_attrib_pointer_f32(
+                        0,
+                        2,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        0,
+                    );
+
+                    self.gl.vertex_attrib_pointer_f32(
+                        1,
+                        2,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        8,
+                    );
+
+                    self.gl.vertex_attrib_pointer_f32(
+                        2,
+                        4,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        16,
+                    );
+
+                    self.gl.enable_vertex_attrib_array(0);
+                    self.gl.enable_vertex_attrib_array(1);
+                    self.gl.enable_vertex_attrib_array(2);
+                } else {
+                    self.gl.disable_vertex_attrib_array(0);
+                    self.gl.disable_vertex_attrib_array(1);
+                    self.gl.disable_vertex_attrib_array(2);
+                }
+
                 self.current_vertex_buffer.set(buffer);
             }
         }
@@ -155,37 +196,6 @@ impl Graphics {
                 .bind_index_buffer(Some(pass.mesh.inner.index_buffer));
             self.state.bind_shader(Some(pass.shader.raw.id));
             self.state.bind_texture(Some(pass.texture.raw.id));
-
-            self.state.gl.vertex_attrib_pointer_f32(
-                0,
-                2,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                0,
-            );
-
-            self.state.gl.vertex_attrib_pointer_f32(
-                1,
-                2,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                8,
-            );
-
-            self.state.gl.vertex_attrib_pointer_f32(
-                2,
-                4,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                16,
-            );
-
-            self.state.gl.enable_vertex_attrib_array(0);
-            self.state.gl.enable_vertex_attrib_array(1);
-            self.state.gl.enable_vertex_attrib_array(2);
 
             let proj = self
                 .state
