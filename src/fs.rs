@@ -1,16 +1,15 @@
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
-use once_cell::sync::OnceCell;
 use png::{BitDepth, ColorType, Decoder};
 
 use crate::graphics::{Graphics, Texture};
 
 pub fn base_path() -> &'static PathBuf {
-    // TODO: Switch to using std once 1.70 comes out
-    static BASE_PATH: OnceCell<PathBuf> = OnceCell::new();
+    static BASE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
     // TODO: Make this use SDL_GetBaseDir when packaging for release
-    BASE_PATH.get_or_try_init(std::env::current_dir).unwrap()
+    BASE_PATH.get_or_init(|| std::env::current_dir().unwrap())
 }
 
 pub fn asset_path(path: &str) -> PathBuf {
