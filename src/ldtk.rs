@@ -73,9 +73,23 @@ impl Level {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Neighbour {
-    // TODO: Might be nice to turn this into an enum
-    pub dir: String,
+    pub dir: NeighbourDirection,
     pub level_iid: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub enum NeighbourDirection {
+    #[serde(rename = "n")]
+    North,
+
+    #[serde(rename = "s")]
+    South,
+
+    #[serde(rename = "e")]
+    East,
+
+    #[serde(rename = "w")]
+    West,
 }
 
 #[derive(Clone, Debug, Deserialize)]
