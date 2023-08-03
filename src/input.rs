@@ -8,8 +8,6 @@ use std::hash::Hash;
 use fermium::prelude::*;
 use glam::Vec2;
 
-use crate::window::sdl_panic;
-
 pub use self::gamepad::*;
 pub use self::key::*;
 pub use self::mouse::*;
