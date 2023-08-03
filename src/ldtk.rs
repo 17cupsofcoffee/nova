@@ -31,9 +31,21 @@ pub struct Defs {
     pub tilesets: Vec<Tileset>,
 }
 
+impl Defs {
+    pub fn get_tileset(&self, id: &str) -> Option<&Tileset> {
+        self.tilesets.iter().find(|t| t.identifier == id)
+    }
+
+    pub fn get_tileset_by_uid(&self, uid: i32) -> Option<&Tileset> {
+        self.tilesets.iter().find(|t| t.uid == uid)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tileset {
+    pub identifier: String,
+    pub uid: i32,
     pub enum_tags: Vec<EnumTag>,
 }
 
@@ -106,6 +118,12 @@ pub struct LayerInstance {
 
     #[serde(rename = "__identifier")]
     pub identifier: String,
+
+    #[serde(rename = "__tilesetDefUid")]
+    pub tileset_def_uid: Option<i32>,
+
+    #[serde(rename = "__tilesetRelPath")]
+    pub tileset_rel_path: Option<String>,
 
     pub entity_instances: Vec<EntityInstance>,
 
