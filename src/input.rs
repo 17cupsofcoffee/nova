@@ -68,7 +68,8 @@ impl Input {
                     let handle = SDL_GameControllerOpen(event.cdevice.which);
 
                     if handle.is_null() {
-                        sdl_panic!();
+                        // TODO: Should probably log here
+                        return;
                     }
 
                     let joystick = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(handle));
