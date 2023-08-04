@@ -136,11 +136,16 @@ impl Input {
                     {
                         if let Some(gamepad_id) = self.joystick_ids.get(&event.caxis.which) {
                             if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
-                                let value = if event.caxis.value > 0 {
+                                let mut value = if event.caxis.value > 0 {
                                     event.caxis.value as f32 / 32767.0
                                 } else {
                                     event.caxis.value as f32 / 32768.0
                                 };
+
+                                // TODO: Add less hacky deadzone logic
+                                if value.abs() < 0.2 {
+                                    value = 0.0;
+                                }
 
                                 match axis {
                                     GamepadAxis::LeftStickX => gamepad.left_stick.x = value,
