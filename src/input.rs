@@ -110,32 +110,30 @@ impl Input {
                     if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
                         event.cbutton.button as i32,
                     )) {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
+                        if let Some(gamepad) = self.get_gamepad_by_joystick_id(&event.cbutton.which)
+                        {
                                 gamepad.buttons.set_down(button);
                             }
                         }
                     }
-                }
 
                 SDL_CONTROLLERBUTTONUP => {
                     if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
                         event.cbutton.button as i32,
                     )) {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
+                        if let Some(gamepad) = self.get_gamepad_by_joystick_id(&event.cbutton.which)
+                        {
                                 gamepad.buttons.set_up(button);
                             }
                         }
                     }
-                }
 
                 SDL_CONTROLLERAXISMOTION => {
                     if let Some(axis) =
                         GamepadAxis::from_raw(SDL_GameControllerAxis(event.caxis.axis as i32))
                     {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.caxis.which) {
-                            if let Some(gamepad) = self.get_gamepad_mut(*gamepad_id) {
+                        if let Some(gamepad) = self.get_gamepad_by_joystick_id(&event.cbutton.which)
+                        {
                                 let mut value = if event.caxis.value > 0 {
                                     event.caxis.value as f32 / 32767.0
                                 } else {
@@ -262,6 +260,12 @@ impl Input {
 
     fn get_gamepad_mut(&mut self, player: usize) -> Option<&mut Gamepad> {
         self.gamepads.get_mut(player).and_then(|slot| slot.as_mut())
+    }
+
+    fn get_gamepad_by_joystick_id(&mut self, joystick_id: &SDL_JoystickID) -> Option<&mut Gamepad> {
+        let gamepad_id = self.joystick_ids.get(joystick_id)?;
+
+        self.get_gamepad_mut(*gamepad_id)
     }
 }
 
