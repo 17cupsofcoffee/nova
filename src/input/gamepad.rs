@@ -1,29 +1,12 @@
 use fermium::prelude::*;
-use glam::Vec2;
-
-use super::ButtonState;
 
 pub(crate) struct Gamepad {
     handle: *mut SDL_GameController,
-
-    pub buttons: ButtonState<GamepadButton>,
-    pub left_stick: Vec2,
-    pub right_stick: Vec2,
-    pub left_trigger: f32,
-    pub right_trigger: f32,
 }
 
 impl Gamepad {
     pub fn from_raw(raw: *mut SDL_GameController) -> Gamepad {
-        Gamepad {
-            handle: raw,
-
-            buttons: ButtonState::new(),
-            left_stick: Vec2::ZERO,
-            right_stick: Vec2::ZERO,
-            left_trigger: 0.0,
-            right_trigger: 0.0,
-        }
+        Gamepad { handle: raw }
     }
 }
 
@@ -33,6 +16,12 @@ impl Drop for Gamepad {
             SDL_GameControllerClose(self.handle);
         }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct WithGamepadId<T> {
+    pub id: usize,
+    pub value: T,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -55,6 +44,10 @@ pub enum GamepadButton {
 }
 
 impl GamepadButton {
+    pub fn on(self, id: usize) -> WithGamepadId<GamepadButton> {
+        WithGamepadId { id, value: self }
+    }
+
     pub(crate) fn from_raw(raw: SDL_GameControllerButton) -> Option<GamepadButton> {
         match raw {
             SDL_CONTROLLER_BUTTON_A => Some(GamepadButton::A),
@@ -88,6 +81,10 @@ pub enum GamepadAxis {
 }
 
 impl GamepadAxis {
+    pub fn on(self, id: usize) -> WithGamepadId<GamepadAxis> {
+        WithGamepadId { id, value: self }
+    }
+
     pub(crate) fn from_raw(raw: SDL_GameControllerAxis) -> Option<GamepadAxis> {
         match raw {
             SDL_CONTROLLER_AXIS_LEFTX => Some(GamepadAxis::LeftStickX),
@@ -105,4 +102,25 @@ impl GamepadAxis {
 pub enum GamepadStick {
     LeftStick,
     RightStick,
+}
+
+impl GamepadStick {
+    pub fn on(self, id: usize) -> WithGamepadId<GamepadStick> {
+        WithGamepadId { id, value: self }
+    }
+
+    pub fn to_axes(&self) -> (GamepadAxis, GamepadAxis) {
+        match self {
+            GamepadStick::LeftStick => (GamepadAxis::LeftStickX, GamepadAxis::LeftStickY),
+            GamepadStick::RightStick => (GamepadAxis::RightStickX, GamepadAxis::RightStickY),
+        }
+    }
+}
+
+impl WithGamepadId<GamepadStick> {
+    pub fn to_axes(&self) -> (WithGamepadId<GamepadAxis>, WithGamepadId<GamepadAxis>) {
+        let (x, y) = self.value.to_axes();
+
+        (x.on(self.id), y.on(self.id))
+    }
 }
