@@ -44,7 +44,7 @@ impl App {
 
             self.handle_events();
 
-            while self.timer.check_update_ready() {
+            while self.timer.consume_time() {
                 event_handler.update(self);
 
                 self.input.clear();

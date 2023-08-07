@@ -42,7 +42,7 @@ impl Timer {
         self.accumulated_time = Duration::ZERO;
     }
 
-    pub fn check_update_ready(&mut self) -> bool {
+    pub fn consume_time(&mut self) -> bool {
         let ready = self.accumulated_time >= self.target_time;
 
         if ready {
