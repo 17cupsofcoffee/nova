@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use glow::{HasContext, PixelUnpackData};
+use png::{BitDepth, ColorType, Decoder};
 
 use crate::fs;
 use crate::graphics::{Graphics, State};
@@ -13,7 +14,32 @@ pub struct Texture {
 impl Texture {
     pub fn from_file(gfx: &Graphics, path: &str, premultiply: bool) -> Texture {
         let bytes = fs::read(path);
-        fs::load_png(gfx, &bytes, premultiply)
+
+        let decoder = Decoder::new(bytes.as_slice());
+        let mut reader = decoder.read_info().unwrap();
+        let mut buf = vec![0; reader.output_buffer_size()];
+        let info = reader.next_frame(&mut buf).unwrap();
+
+        assert!(info.color_type == ColorType::Rgba);
+        assert!(info.bit_depth == BitDepth::Eight);
+
+        if premultiply {
+            for pixel in buf.chunks_mut(4) {
+                let a = pixel[3];
+
+                if a == 0 {
+                    pixel[0] = 0;
+                    pixel[1] = 0;
+                    pixel[2] = 0;
+                } else if a < 255 {
+                    pixel[0] = ((pixel[0] as u16 * a as u16) >> 8) as u8;
+                    pixel[1] = ((pixel[1] as u16 * a as u16) >> 8) as u8;
+                    pixel[2] = ((pixel[2] as u16 * a as u16) >> 8) as u8;
+                }
+            }
+        }
+
+        Texture::from_data(gfx, info.width as i32, info.height as i32, &buf)
     }
 
     pub fn from_data(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
