@@ -175,15 +175,15 @@ impl Input {
         self.buttons.is_released(button.into())
     }
 
-    pub fn gamepad_axis(&self, axis: WithGamepadId<GamepadAxis>) -> f32 {
+    pub fn axis(&self, axis: WithGamepadId<GamepadAxis>) -> f32 {
         self.axes.get_value(axis)
     }
 
-    pub fn has_gamepad_axis_moved(&self, axis: WithGamepadId<GamepadAxis>) -> bool {
+    pub fn has_axis_moved(&self, axis: WithGamepadId<GamepadAxis>) -> bool {
         self.axes.has_moved(axis)
     }
 
-    pub fn gamepad_stick(&self, stick: WithGamepadId<GamepadStick>) -> Vec2 {
+    pub fn stick(&self, stick: WithGamepadId<GamepadStick>) -> Vec2 {
         let (x, y) = stick.to_axes();
 
         let x_val = self.axes.get_value(x);
@@ -192,7 +192,7 @@ impl Input {
         Vec2::new(x_val, y_val)
     }
 
-    pub fn has_gamepad_stick_moved(&self, stick: WithGamepadId<GamepadStick>) -> bool {
+    pub fn has_stick_moved(&self, stick: WithGamepadId<GamepadStick>) -> bool {
         let (x, y) = stick.to_axes();
 
         self.axes.has_moved(x) || self.axes.has_moved(y)
