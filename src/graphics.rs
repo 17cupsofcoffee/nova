@@ -191,9 +191,9 @@ impl Graphics {
     {
         unsafe {
             self.state
-                .bind_vertex_buffer(Some(pass.mesh.inner.vertex_buffer));
+                .bind_vertex_buffer(Some(pass.mesh.raw.vertex_buffer));
             self.state
-                .bind_index_buffer(Some(pass.mesh.inner.index_buffer));
+                .bind_index_buffer(Some(pass.mesh.raw.index_buffer));
             self.state.bind_shader(Some(pass.shader.raw.id));
             self.state.bind_texture(Some(pass.texture.raw.id));
 

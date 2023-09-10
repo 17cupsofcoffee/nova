@@ -43,6 +43,57 @@ impl Texture {
     }
 
     pub fn from_data(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> Texture {
+        let raw = RawTexture::new(gfx, width, height, data);
+
+        Texture { raw: Rc::new(raw) }
+    }
+
+    pub fn empty(gfx: &Graphics, width: i32, height: i32) -> Texture {
+        Texture::from_data(
+            gfx,
+            width,
+            height,
+            &vec![0; width as usize * height as usize * 4],
+        )
+    }
+
+    pub fn width(&self) -> i32 {
+        self.raw.width
+    }
+
+    pub fn height(&self) -> i32 {
+        self.raw.height
+    }
+
+    pub fn size(&self) -> (i32, i32) {
+        (self.raw.width, self.raw.height)
+    }
+
+    pub fn set_data(&self, data: &[u8]) {
+        self.raw
+            .set_region(0, 0, self.raw.width, self.raw.height, data);
+    }
+
+    pub fn set_region(&self, x: i32, y: i32, width: i32, height: i32, data: &[u8]) {
+        self.raw.set_region(x, y, width, height, data);
+    }
+}
+
+impl PartialEq for Texture {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw.id == other.raw.id
+    }
+}
+
+pub struct RawTexture {
+    state: Rc<State>,
+    pub(crate) id: glow::Texture,
+    width: i32,
+    height: i32,
+}
+
+impl RawTexture {
+    pub fn new(gfx: &Graphics, width: i32, height: i32, data: &[u8]) -> RawTexture {
         unsafe {
             assert_eq!(width as usize * height as usize * 4, data.len());
 
@@ -94,52 +145,23 @@ impl Texture {
                 Some(data),
             );
 
-            Texture {
-                raw: Rc::new(RawTexture {
-                    state: Rc::clone(&gfx.state),
-                    id,
-                    width,
-                    height,
-                }),
+            RawTexture {
+                state: Rc::clone(&gfx.state),
+                id,
+                width,
+                height,
             }
         }
-    }
-
-    pub fn empty(gfx: &Graphics, width: i32, height: i32) -> Texture {
-        Texture::from_data(
-            gfx,
-            width,
-            height,
-            &vec![0; width as usize * height as usize * 4],
-        )
-    }
-
-    pub fn width(&self) -> i32 {
-        self.raw.width
-    }
-
-    pub fn height(&self) -> i32 {
-        self.raw.height
-    }
-
-    pub fn size(&self) -> (i32, i32) {
-        (self.raw.width, self.raw.height)
-    }
-
-    pub fn set_data(&self, data: &[u8]) {
-        self.set_region(0, 0, self.raw.width, self.raw.height, data);
     }
 
     pub fn set_region(&self, x: i32, y: i32, width: i32, height: i32, data: &[u8]) {
         unsafe {
             assert_eq!(width as usize * height as usize * 4, data.len());
-            assert!(
-                x >= 0 && y >= 0 && x + width <= self.raw.width && y + height <= self.raw.height
-            );
+            assert!(x >= 0 && y >= 0 && x + width <= self.width && y + height <= self.height);
 
-            self.raw.state.bind_texture(Some(self.raw.id));
+            self.state.bind_texture(Some(self.id));
 
-            self.raw.state.gl.tex_sub_image_2d(
+            self.state.gl.tex_sub_image_2d(
                 glow::TEXTURE_2D,
                 0,
                 x,
@@ -152,19 +174,6 @@ impl Texture {
             )
         }
     }
-}
-
-impl PartialEq for Texture {
-    fn eq(&self, other: &Self) -> bool {
-        self.raw.id == other.raw.id
-    }
-}
-
-pub struct RawTexture {
-    state: Rc<State>,
-    pub(crate) id: glow::Texture,
-    width: i32,
-    height: i32,
 }
 
 impl Drop for RawTexture {

@@ -4,6 +4,8 @@ use glow::HasContext;
 
 use crate::graphics::{Graphics, State, Texture};
 
+use super::RawTexture;
+
 #[derive(Clone)]
 pub struct Canvas {
     pub(crate) raw: Rc<RawCanvas>,
@@ -12,29 +14,12 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn new(gfx: &Graphics, width: i32, height: i32) -> Canvas {
-        unsafe {
-            let id = gfx.state.gl.create_framebuffer().unwrap();
+        let texture = Texture::empty(gfx, width, height);
+        let raw = RawCanvas::new(gfx, &texture.raw);
 
-            gfx.state.bind_canvas(Some(id));
-
-            let texture = Texture::empty(gfx, width, height);
-
-            gfx.state.gl.framebuffer_texture_2d(
-                glow::FRAMEBUFFER,
-                glow::COLOR_ATTACHMENT0,
-                glow::TEXTURE_2D,
-                Some(texture.raw.id),
-                0,
-            );
-
-            Canvas {
-                raw: Rc::new(RawCanvas {
-                    state: Rc::clone(&gfx.state),
-                    id,
-                }),
-
-                texture,
-            }
+        Canvas {
+            raw: Rc::new(raw),
+            texture,
         }
     }
 
@@ -58,6 +43,29 @@ impl Canvas {
 pub struct RawCanvas {
     state: Rc<State>,
     pub(crate) id: glow::Framebuffer,
+}
+
+impl RawCanvas {
+    pub fn new(gfx: &Graphics, texture: &RawTexture) -> RawCanvas {
+        unsafe {
+            let id = gfx.state.gl.create_framebuffer().unwrap();
+
+            gfx.state.bind_canvas(Some(id));
+
+            gfx.state.gl.framebuffer_texture_2d(
+                glow::FRAMEBUFFER,
+                glow::COLOR_ATTACHMENT0,
+                glow::TEXTURE_2D,
+                Some(texture.id),
+                0,
+            );
+
+            RawCanvas {
+                state: Rc::clone(&gfx.state),
+                id,
+            }
+        }
+    }
 }
 
 impl Drop for RawCanvas {

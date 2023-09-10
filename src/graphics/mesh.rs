@@ -22,40 +22,36 @@ impl Vertex {
     }
 }
 
-#[derive(Clone)]
-pub struct MeshInner {
-    state: Rc<State>,
-
-    pub(crate) vertex_buffer: glow::Buffer,
-    // vertex_count: usize,
-    pub(crate) index_buffer: glow::Buffer,
-    // index_count: usize,
-}
-
-impl Drop for MeshInner {
-    fn drop(&mut self) {
-        unsafe {
-            self.state.gl.delete_buffer(self.vertex_buffer);
-
-            if self.state.current_vertex_buffer.get() == Some(self.vertex_buffer) {
-                self.state.current_vertex_buffer.set(None);
-            }
-
-            self.state.gl.delete_buffer(self.index_buffer);
-
-            if self.state.current_index_buffer.get() == Some(self.index_buffer) {
-                self.state.current_index_buffer.set(None);
-            }
-        }
-    }
-}
-
 pub struct Mesh {
-    pub(crate) inner: Rc<MeshInner>,
+    pub(crate) raw: Rc<RawMesh>,
 }
 
 impl Mesh {
     pub fn new(gfx: &Graphics, vertex_count: usize, index_count: usize) -> Mesh {
+        let raw = RawMesh::new(gfx, vertex_count, index_count);
+
+        Mesh { raw: Rc::new(raw) }
+    }
+
+    pub fn set_vertices(&self, data: &[Vertex]) {
+        self.raw.set_vertices(data);
+    }
+
+    pub fn set_indices(&self, data: &[u32]) {
+        self.raw.set_indices(data);
+    }
+}
+
+#[derive(Clone)]
+pub struct RawMesh {
+    state: Rc<State>,
+
+    pub(crate) vertex_buffer: glow::Buffer,
+    pub(crate) index_buffer: glow::Buffer,
+}
+
+impl RawMesh {
+    pub fn new(gfx: &Graphics, vertex_count: usize, index_count: usize) -> RawMesh {
         unsafe {
             let vertex_buffer = gfx.state.gl.create_buffer().unwrap();
 
@@ -77,26 +73,20 @@ impl Mesh {
                 glow::STATIC_DRAW,
             );
 
-            Mesh {
-                inner: Rc::new(MeshInner {
-                    state: Rc::clone(&gfx.state),
+            RawMesh {
+                state: Rc::clone(&gfx.state),
 
-                    vertex_buffer,
-                    // vertex_count,
-                    index_buffer,
-                    // index_count,
-                }),
+                vertex_buffer,
+                index_buffer,
             }
         }
     }
 
     pub fn set_vertices(&self, data: &[Vertex]) {
         unsafe {
-            self.inner
-                .state
-                .bind_vertex_buffer(Some(self.inner.vertex_buffer));
+            self.state.bind_vertex_buffer(Some(self.vertex_buffer));
 
-            self.inner.state.gl.buffer_sub_data_u8_slice(
+            self.state.gl.buffer_sub_data_u8_slice(
                 glow::ARRAY_BUFFER,
                 0,
                 bytemuck::cast_slice(data),
@@ -106,15 +96,31 @@ impl Mesh {
 
     pub fn set_indices(&self, data: &[u32]) {
         unsafe {
-            self.inner
-                .state
-                .bind_index_buffer(Some(self.inner.index_buffer));
+            self.state.bind_index_buffer(Some(self.index_buffer));
 
-            self.inner.state.gl.buffer_sub_data_u8_slice(
+            self.state.gl.buffer_sub_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
                 0,
                 bytemuck::cast_slice(data),
             );
+        }
+    }
+}
+
+impl Drop for RawMesh {
+    fn drop(&mut self) {
+        unsafe {
+            self.state.gl.delete_buffer(self.vertex_buffer);
+
+            if self.state.current_vertex_buffer.get() == Some(self.vertex_buffer) {
+                self.state.current_vertex_buffer.set(None);
+            }
+
+            self.state.gl.delete_buffer(self.index_buffer);
+
+            if self.state.current_index_buffer.get() == Some(self.index_buffer) {
+                self.state.current_index_buffer.set(None);
+            }
         }
     }
 }

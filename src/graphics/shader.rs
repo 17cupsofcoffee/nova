@@ -11,6 +11,19 @@ pub struct Shader {
 
 impl Shader {
     pub fn from_str(gfx: &Graphics, vertex_src: &str, fragment_src: &str) -> Shader {
+        let raw = RawShader::new(gfx, vertex_src, fragment_src);
+
+        Shader { raw: Rc::new(raw) }
+    }
+}
+
+pub struct RawShader {
+    state: Rc<State>,
+    pub(crate) id: glow::Program,
+}
+
+impl RawShader {
+    pub fn new(gfx: &Graphics, vertex_src: &str, fragment_src: &str) -> RawShader {
         unsafe {
             let program = gfx.state.gl.create_program().unwrap();
 
@@ -56,19 +69,12 @@ impl Shader {
 
             gfx.state.gl.uniform_1_i32(Some(&sampler), 0);
 
-            Shader {
-                raw: Rc::new(RawShader {
-                    state: Rc::clone(&gfx.state),
-                    id: program,
-                }),
+            RawShader {
+                state: Rc::clone(&gfx.state),
+                id: program,
             }
         }
     }
-}
-
-pub struct RawShader {
-    state: Rc<State>,
-    pub(crate) id: glow::Program,
 }
 
 impl Drop for RawShader {
