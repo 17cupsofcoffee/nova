@@ -64,6 +64,19 @@ impl Window {
 
             SDL_GL_SetSwapInterval(1);
 
+            let mut version_info = SDL_version {
+                major: 0,
+                minor: 0,
+                patch: 0,
+            };
+
+            SDL_GetVersion(&mut version_info);
+
+            println!(
+                "SDL Version: {}.{}.{}",
+                version_info.major, version_info.minor, version_info.patch
+            );
+
             Window {
                 window,
                 gl,
