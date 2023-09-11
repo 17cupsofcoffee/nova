@@ -3,8 +3,11 @@
 Nova is a 2D game framework written in Rust.
 
 This is a sort of spiritual successor to [Tetra](https://github.com/17cupsofcoffee/tetra), a game engine I worked
-on between 2018 and 2022. It aims to be smaller and simpler than Tetra, with less global state.
+on between 2018 and 2022. It aims to be smaller and simpler, with less global state.
 
-#### ⚠️ Use at your own risk!
+**⚠️ Use at your own risk!** This framework is still very experimental, and the API is constantly in flux. No support is offered, but you are welcome to use to the code as reference or fork it for your own needs.
 
-This framework is designed as a base for my own projects, rather than as a general-purpose library. Breaking changes will be frequent, and I will not give support or accept feature requests. That being said, feel free to use the code as a reference, or fork it for your own needs!
+## Notes
+
+* This framework is very heavily inspired by [FNA](https://github.com/FNA-XNA/FNA), and NoelFB's lightweight game engines ([Blah](https://github.com/NoelFB/blah) and [Foster](https://github.com/NoelFB/Foster)).
+* It depends on [SDL2](https://www.libsdl.org/) for interacting with the underlying platform.
