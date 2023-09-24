@@ -200,6 +200,7 @@ pub struct FieldInstance {
     pub identifier: String,
 
     // TODO: Make this nicer
+    #[serde(rename = "__value")]
     pub value: Option<serde_json::Value>,
 }
 
