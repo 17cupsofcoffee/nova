@@ -1,3 +1,5 @@
+use std::ops::{Mul, MulAssign};
+
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
@@ -48,5 +50,27 @@ impl Color {
     // TODO: Not sure if this is the best API
     pub const fn alpha(a: f32) -> Color {
         Color::rgba(a, a, a, a)
+    }
+}
+
+impl Mul for Color {
+    type Output = Color;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Color::rgba(
+            self.r * rhs.r,
+            self.g * rhs.g,
+            self.b * rhs.b,
+            self.a * rhs.a,
+        )
+    }
+}
+
+impl MulAssign for Color {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.r *= rhs.r;
+        self.g *= rhs.g;
+        self.b *= rhs.b;
+        self.a *= rhs.a;
     }
 }
