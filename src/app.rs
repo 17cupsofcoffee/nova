@@ -20,7 +20,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(title: &str, width: u32, height: u32, tick_rate: f64) -> App {
+    pub fn new(title: &str, width: i32, height: i32, tick_rate: f64) -> App {
         let mut window = Window::new(title, width, height);
         let gfx = Graphics::new(&mut window);
         let input = Input::new();

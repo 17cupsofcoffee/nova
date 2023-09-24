@@ -15,7 +15,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(title: &str, width: u32, height: u32) -> Window {
+    pub fn new(title: &str, width: i32, height: i32) -> Window {
         unsafe {
             if SDL_INIT.load(Ordering::Relaxed) {
                 panic!("SDL already initialized");
@@ -45,8 +45,8 @@ impl Window {
                 c_title.as_ptr(),
                 SDL_WINDOWPOS_CENTERED,
                 SDL_WINDOWPOS_CENTERED,
-                width as i32,
-                height as i32,
+                width,
+                height,
                 (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN).0,
             );
 
