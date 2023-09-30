@@ -147,16 +147,6 @@ impl Graphics {
                 glow::ONE_MINUS_SRC_ALPHA,
             );
 
-            // gl.enable(glow::DEBUG_OUTPUT);
-            // gl.enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
-            // gl.debug_message_callback(|_source, ty, _id, severity, msg| {
-            //     if severity == glow::DEBUG_SEVERITY_NOTIFICATION && ty == glow::DEBUG_TYPE_OTHER {
-            //         return;
-            //     }
-
-            //     println!("{}", msg);
-            // });
-
             println!("OpenGL Version: {}", gl.get_parameter_string(glow::VERSION));
             println!("Renderer: {}", gl.get_parameter_string(glow::RENDERER));
         }
