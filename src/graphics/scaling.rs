@@ -3,16 +3,61 @@ use glam::Vec2;
 use crate::graphics::Canvas;
 use crate::window::Window;
 
-use super::{Batcher, DrawParams};
+use super::{Batcher, Color, DrawParams, Graphics, Target};
 
-pub fn screen_scale(canvas: &Canvas, window: &Window, batch: &mut Batcher) {
-    let (screen_pos, screen_scale) = fit_canvas_to_window(canvas, window);
+pub struct Scaler {
+    canvas: Canvas,
 
-    batch.texture(
-        canvas.texture(),
-        screen_pos,
-        DrawParams::new().scale(screen_scale),
-    );
+    offset: Vec2,
+    scale: Vec2,
+}
+
+impl Scaler {
+    pub fn new(gfx: &Graphics, width: i32, height: i32) -> Scaler {
+        Scaler {
+            canvas: Canvas::new(gfx, width, height),
+
+            offset: Vec2::ZERO,
+            scale: Vec2::ONE,
+        }
+    }
+
+    pub fn draw(&mut self, gfx: &Graphics, batch: &mut Batcher, target: &Window) {
+        gfx.clear(target, Color::BLACK);
+
+        let (offset, scale) = fit_canvas_to_window(&self.canvas, target);
+
+        batch.texture(
+            self.canvas.texture(),
+            offset,
+            DrawParams::new().scale(scale),
+        );
+
+        batch.draw(gfx, target);
+
+        self.offset = offset;
+        self.scale = scale;
+    }
+
+    pub fn offset(&self) -> Vec2 {
+        self.offset
+    }
+
+    pub fn scale(&self) -> Vec2 {
+        self.scale
+    }
+}
+
+impl Target for Scaler {
+    const FLIPPED: bool = Canvas::FLIPPED;
+
+    fn bind(&self, gfx: &Graphics) {
+        self.canvas.bind(gfx)
+    }
+
+    fn size(&self) -> (i32, i32) {
+        self.canvas.size()
+    }
 }
 
 pub fn fit_canvas_to_window(canvas: &Canvas, window: &Window) -> (Vec2, Vec2) {
