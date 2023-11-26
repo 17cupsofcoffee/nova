@@ -4,7 +4,7 @@ use glow::{HasContext, PixelUnpackData};
 use png::{BitDepth, ColorType, Decoder};
 
 use crate::fs;
-use crate::graphics::{Graphics, State};
+use crate::graphics::Graphics;
 
 #[derive(Clone)]
 pub struct Texture {
@@ -86,7 +86,7 @@ impl PartialEq for Texture {
 }
 
 pub struct RawTexture {
-    state: Rc<State>,
+    gfx: Graphics,
     pub(crate) id: glow::Texture,
     width: i32,
     height: i32,
@@ -99,7 +99,7 @@ impl RawTexture {
 
             let id = gfx.state.gl.create_texture().unwrap();
 
-            gfx.state.bind_texture(Some(id));
+            gfx.bind_texture(Some(id));
 
             gfx.state.gl.tex_parameter_i32(
                 glow::TEXTURE_2D,
@@ -146,7 +146,7 @@ impl RawTexture {
             );
 
             RawTexture {
-                state: Rc::clone(&gfx.state),
+                gfx: gfx.clone(),
                 id,
                 width,
                 height,
@@ -159,9 +159,9 @@ impl RawTexture {
             assert_eq!(width as usize * height as usize * 4, data.len());
             assert!(x >= 0 && y >= 0 && x + width <= self.width && y + height <= self.height);
 
-            self.state.bind_texture(Some(self.id));
+            self.gfx.bind_texture(Some(self.id));
 
-            self.state.gl.tex_sub_image_2d(
+            self.gfx.state.gl.tex_sub_image_2d(
                 glow::TEXTURE_2D,
                 0,
                 x,
@@ -179,10 +179,10 @@ impl RawTexture {
 impl Drop for RawTexture {
     fn drop(&mut self) {
         unsafe {
-            self.state.gl.delete_texture(self.id);
+            self.gfx.state.gl.delete_texture(self.id);
 
-            if self.state.current_texture.get() == Some(self.id) {
-                self.state.current_texture.set(None);
+            if self.gfx.state.current_texture.get() == Some(self.id) {
+                self.gfx.state.current_texture.set(None);
             }
         }
     }

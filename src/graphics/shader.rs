@@ -59,7 +59,7 @@ impl RawShader {
             gfx.state.gl.delete_shader(vertex_shader);
             gfx.state.gl.delete_shader(fragment_shader);
 
-            gfx.state.bind_shader(Some(program));
+            gfx.bind_shader(Some(program));
 
             let sampler = gfx
                 .state

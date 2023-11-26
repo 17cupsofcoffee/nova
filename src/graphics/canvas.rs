@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use glow::HasContext;
 
-use crate::graphics::{Graphics, State, Texture};
+use crate::graphics::{Graphics, Texture};
 
 use super::RawTexture;
 
@@ -41,7 +41,7 @@ impl Canvas {
 }
 
 pub struct RawCanvas {
-    state: Rc<State>,
+    gfx: Graphics,
     pub(crate) id: glow::Framebuffer,
 }
 
@@ -50,7 +50,7 @@ impl RawCanvas {
         unsafe {
             let id = gfx.state.gl.create_framebuffer().unwrap();
 
-            gfx.state.bind_canvas(Some(id));
+            gfx.bind_canvas(Some(id));
 
             gfx.state.gl.framebuffer_texture_2d(
                 glow::FRAMEBUFFER,
@@ -61,7 +61,7 @@ impl RawCanvas {
             );
 
             RawCanvas {
-                state: Rc::clone(&gfx.state),
+                gfx: gfx.clone(),
                 id,
             }
         }
@@ -71,10 +71,10 @@ impl RawCanvas {
 impl Drop for RawCanvas {
     fn drop(&mut self) {
         unsafe {
-            self.state.gl.delete_framebuffer(self.id);
+            self.gfx.state.gl.delete_framebuffer(self.id);
 
-            if self.state.current_canvas.get() == Some(self.id) {
-                self.state.current_canvas.set(None);
+            if self.gfx.state.current_canvas.get() == Some(self.id) {
+                self.gfx.state.current_canvas.set(None);
             }
         }
     }

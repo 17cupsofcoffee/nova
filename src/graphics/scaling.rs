@@ -22,9 +22,7 @@ impl Scaler {
         }
     }
 
-    pub fn draw(&mut self, gfx: &Graphics, batch: &mut Batcher, target: &Window) {
-        gfx.clear(target, Color::BLACK);
-
+    pub fn draw(&mut self, batch: &mut Batcher, target: &Window) {
         let (offset, scale) = fit_canvas_to_window(&self.canvas, target);
 
         batch.texture(
@@ -33,7 +31,7 @@ impl Scaler {
             DrawParams::new().scale(scale),
         );
 
-        batch.draw(gfx, target);
+        batch.clear_and_draw(Color::BLACK, target);
 
         self.offset = offset;
         self.scale = scale;

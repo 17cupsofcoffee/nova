@@ -37,95 +37,7 @@ struct State {
     current_canvas: Cell<Option<glow::Framebuffer>>,
 }
 
-impl State {
-    fn bind_vertex_buffer(&self, buffer: Option<glow::Buffer>) {
-        unsafe {
-            if self.current_vertex_buffer.get() != buffer {
-                self.gl.bind_buffer(glow::ARRAY_BUFFER, buffer);
-
-                if buffer.is_some() {
-                    // TODO: If I ever want to use something other than `Vertex` in a buffer
-                    // I'll need to rethink this code, but it's fine for now.
-
-                    self.gl.vertex_attrib_pointer_f32(
-                        0,
-                        2,
-                        glow::FLOAT,
-                        false,
-                        std::mem::size_of::<Vertex>() as i32,
-                        0,
-                    );
-
-                    self.gl.vertex_attrib_pointer_f32(
-                        1,
-                        2,
-                        glow::FLOAT,
-                        false,
-                        std::mem::size_of::<Vertex>() as i32,
-                        8,
-                    );
-
-                    self.gl.vertex_attrib_pointer_f32(
-                        2,
-                        4,
-                        glow::FLOAT,
-                        false,
-                        std::mem::size_of::<Vertex>() as i32,
-                        16,
-                    );
-
-                    self.gl.enable_vertex_attrib_array(0);
-                    self.gl.enable_vertex_attrib_array(1);
-                    self.gl.enable_vertex_attrib_array(2);
-                } else {
-                    self.gl.disable_vertex_attrib_array(0);
-                    self.gl.disable_vertex_attrib_array(1);
-                    self.gl.disable_vertex_attrib_array(2);
-                }
-
-                self.current_vertex_buffer.set(buffer);
-            }
-        }
-    }
-
-    fn bind_index_buffer(&self, buffer: Option<glow::Buffer>) {
-        unsafe {
-            if self.current_index_buffer.get() != buffer {
-                self.gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, buffer);
-                self.current_index_buffer.set(buffer);
-            }
-        }
-    }
-
-    fn bind_shader(&self, shader: Option<glow::Program>) {
-        unsafe {
-            if self.current_shader.get() != shader {
-                self.gl.use_program(shader);
-                self.current_shader.set(shader);
-            }
-        }
-    }
-
-    fn bind_texture(&self, texture: Option<glow::Texture>) {
-        unsafe {
-            if self.current_texture.get() != texture {
-                self.gl.active_texture(glow::TEXTURE0);
-                self.gl.bind_texture(glow::TEXTURE_2D, texture);
-                self.current_texture.set(texture);
-            }
-        }
-    }
-
-    fn bind_canvas(&self, canvas: Option<glow::Framebuffer>) {
-        unsafe {
-            if self.current_canvas.get() != canvas {
-                self.gl.bind_framebuffer(glow::FRAMEBUFFER, canvas);
-                self.current_canvas.set(canvas);
-            }
-        }
-    }
-}
-
+#[derive(Clone)]
 pub struct Graphics {
     state: Rc<State>,
 }
@@ -163,29 +75,25 @@ impl Graphics {
         }
     }
 
-    pub fn clear(&self, target: &impl Target, color: Color) {
-        unsafe {
-            target.bind(self);
-
-            self.state.gl.disable(glow::SCISSOR_TEST);
-            self.state
-                .gl
-                .clear_color(color.r, color.g, color.b, color.a);
-            self.state.gl.clear(glow::COLOR_BUFFER_BIT);
-        }
-    }
-
     pub fn draw<T>(&self, pass: RenderPass<'_, T>)
     where
         T: Target,
     {
         unsafe {
-            self.state
-                .bind_vertex_buffer(Some(pass.mesh.raw.vertex_buffer));
-            self.state
-                .bind_index_buffer(Some(pass.mesh.raw.index_buffer));
-            self.state.bind_shader(Some(pass.shader.raw.id));
-            self.state.bind_texture(Some(pass.texture.raw.id));
+            pass.target.bind(self);
+
+            if let Some(color) = pass.clear_color {
+                self.state
+                    .gl
+                    .clear_color(color.r, color.g, color.b, color.a);
+
+                self.state.gl.clear(glow::COLOR_BUFFER_BIT);
+            }
+
+            self.bind_vertex_buffer(Some(pass.mesh.raw.vertex_buffer));
+            self.bind_index_buffer(Some(pass.mesh.raw.index_buffer));
+            self.bind_shader(Some(pass.shader.raw.id));
+            self.bind_texture(Some(pass.texture.raw.id));
 
             let proj = self
                 .state
@@ -193,7 +101,6 @@ impl Graphics {
                 .get_uniform_location(pass.shader.raw.id, "u_projection")
                 .unwrap();
 
-            pass.target.bind(self);
             let (target_width, target_height) = pass.target.size();
 
             self.state.gl.uniform_matrix_4_f32_slice(
@@ -228,6 +135,95 @@ impl Graphics {
             );
         }
     }
+
+    pub fn bind_vertex_buffer(&self, buffer: Option<glow::Buffer>) {
+        unsafe {
+            if self.state.current_vertex_buffer.get() != buffer {
+                self.state.gl.bind_buffer(glow::ARRAY_BUFFER, buffer);
+
+                if buffer.is_some() {
+                    // TODO: If I ever want to use something other than `Vertex` in a buffer
+                    // I'll need to rethink this code, but it's fine for now.
+
+                    self.state.gl.vertex_attrib_pointer_f32(
+                        0,
+                        2,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        0,
+                    );
+
+                    self.state.gl.vertex_attrib_pointer_f32(
+                        1,
+                        2,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        8,
+                    );
+
+                    self.state.gl.vertex_attrib_pointer_f32(
+                        2,
+                        4,
+                        glow::FLOAT,
+                        false,
+                        std::mem::size_of::<Vertex>() as i32,
+                        16,
+                    );
+
+                    self.state.gl.enable_vertex_attrib_array(0);
+                    self.state.gl.enable_vertex_attrib_array(1);
+                    self.state.gl.enable_vertex_attrib_array(2);
+                } else {
+                    self.state.gl.disable_vertex_attrib_array(0);
+                    self.state.gl.disable_vertex_attrib_array(1);
+                    self.state.gl.disable_vertex_attrib_array(2);
+                }
+
+                self.state.current_vertex_buffer.set(buffer);
+            }
+        }
+    }
+
+    pub fn bind_index_buffer(&self, buffer: Option<glow::Buffer>) {
+        unsafe {
+            if self.state.current_index_buffer.get() != buffer {
+                self.state
+                    .gl
+                    .bind_buffer(glow::ELEMENT_ARRAY_BUFFER, buffer);
+                self.state.current_index_buffer.set(buffer);
+            }
+        }
+    }
+
+    pub fn bind_shader(&self, shader: Option<glow::Program>) {
+        unsafe {
+            if self.state.current_shader.get() != shader {
+                self.state.gl.use_program(shader);
+                self.state.current_shader.set(shader);
+            }
+        }
+    }
+
+    pub fn bind_texture(&self, texture: Option<glow::Texture>) {
+        unsafe {
+            if self.state.current_texture.get() != texture {
+                self.state.gl.active_texture(glow::TEXTURE0);
+                self.state.gl.bind_texture(glow::TEXTURE_2D, texture);
+                self.state.current_texture.set(texture);
+            }
+        }
+    }
+
+    pub fn bind_canvas(&self, canvas: Option<glow::Framebuffer>) {
+        unsafe {
+            if self.state.current_canvas.get() != canvas {
+                self.state.gl.bind_framebuffer(glow::FRAMEBUFFER, canvas);
+                self.state.current_canvas.set(canvas);
+            }
+        }
+    }
 }
 
 pub trait Target {
@@ -241,7 +237,7 @@ impl Target for Window {
     const FLIPPED: bool = false;
 
     fn bind(&self, gfx: &Graphics) {
-        gfx.state.bind_canvas(None);
+        gfx.bind_canvas(None);
 
         unsafe {
             gfx.state.gl.front_face(glow::CCW);
@@ -258,7 +254,7 @@ impl Target for Canvas {
     const FLIPPED: bool = true;
 
     fn bind(&self, gfx: &Graphics) {
-        gfx.state.bind_canvas(Some(self.raw.id));
+        gfx.bind_canvas(Some(self.raw.id));
 
         unsafe {
             gfx.state.gl.front_face(glow::CW);
@@ -279,4 +275,6 @@ pub struct RenderPass<'a, T> {
 
     pub index_start: usize,
     pub index_count: usize,
+
+    pub clear_color: Option<Color>,
 }

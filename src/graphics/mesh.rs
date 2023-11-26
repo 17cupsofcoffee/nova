@@ -4,7 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::Vec2;
 use glow::HasContext;
 
-use crate::graphics::{Graphics, State};
+use crate::graphics::Graphics;
 
 use super::Color;
 
@@ -44,7 +44,7 @@ impl Mesh {
 
 #[derive(Clone)]
 pub struct RawMesh {
-    state: Rc<State>,
+    pub(crate) gfx: Graphics,
 
     pub(crate) vertex_buffer: glow::Buffer,
     pub(crate) index_buffer: glow::Buffer,
@@ -55,7 +55,7 @@ impl RawMesh {
         unsafe {
             let vertex_buffer = gfx.state.gl.create_buffer().unwrap();
 
-            gfx.state.bind_vertex_buffer(Some(vertex_buffer));
+            gfx.bind_vertex_buffer(Some(vertex_buffer));
 
             gfx.state.gl.buffer_data_size(
                 glow::ARRAY_BUFFER,
@@ -65,7 +65,7 @@ impl RawMesh {
 
             let index_buffer = gfx.state.gl.create_buffer().unwrap();
 
-            gfx.state.bind_index_buffer(Some(index_buffer));
+            gfx.bind_index_buffer(Some(index_buffer));
 
             gfx.state.gl.buffer_data_size(
                 glow::ELEMENT_ARRAY_BUFFER,
@@ -74,7 +74,7 @@ impl RawMesh {
             );
 
             RawMesh {
-                state: Rc::clone(&gfx.state),
+                gfx: gfx.clone(),
 
                 vertex_buffer,
                 index_buffer,
@@ -84,9 +84,9 @@ impl RawMesh {
 
     pub fn set_vertices(&self, data: &[Vertex]) {
         unsafe {
-            self.state.bind_vertex_buffer(Some(self.vertex_buffer));
+            self.gfx.bind_vertex_buffer(Some(self.vertex_buffer));
 
-            self.state.gl.buffer_sub_data_u8_slice(
+            self.gfx.state.gl.buffer_sub_data_u8_slice(
                 glow::ARRAY_BUFFER,
                 0,
                 bytemuck::cast_slice(data),
@@ -96,9 +96,9 @@ impl RawMesh {
 
     pub fn set_indices(&self, data: &[u32]) {
         unsafe {
-            self.state.bind_index_buffer(Some(self.index_buffer));
+            self.gfx.bind_index_buffer(Some(self.index_buffer));
 
-            self.state.gl.buffer_sub_data_u8_slice(
+            self.gfx.state.gl.buffer_sub_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
                 0,
                 bytemuck::cast_slice(data),
@@ -110,16 +110,16 @@ impl RawMesh {
 impl Drop for RawMesh {
     fn drop(&mut self) {
         unsafe {
-            self.state.gl.delete_buffer(self.vertex_buffer);
+            self.gfx.state.gl.delete_buffer(self.vertex_buffer);
 
-            if self.state.current_vertex_buffer.get() == Some(self.vertex_buffer) {
-                self.state.current_vertex_buffer.set(None);
+            if self.gfx.state.current_vertex_buffer.get() == Some(self.vertex_buffer) {
+                self.gfx.state.current_vertex_buffer.set(None);
             }
 
-            self.state.gl.delete_buffer(self.index_buffer);
+            self.gfx.state.gl.delete_buffer(self.index_buffer);
 
-            if self.state.current_index_buffer.get() == Some(self.index_buffer) {
-                self.state.current_index_buffer.set(None);
+            if self.gfx.state.current_index_buffer.get() == Some(self.index_buffer) {
+                self.gfx.state.current_index_buffer.set(None);
             }
         }
     }
