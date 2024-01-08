@@ -13,7 +13,10 @@ pub use self::key::*;
 pub use self::mouse::*;
 
 pub struct Input {
-    buttons: ButtonState,
+    keys: ButtonState<Key>,
+    mouse_buttons: ButtonState<MouseButton>,
+    gamepad_buttons: ButtonState<(usize, GamepadButton)>,
+
     axes: AxisState,
     mouse_position: Vec2,
 
@@ -24,7 +27,10 @@ pub struct Input {
 impl Input {
     pub fn new() -> Input {
         Input {
-            buttons: ButtonState::new(),
+            keys: ButtonState::new(),
+            mouse_buttons: ButtonState::new(),
+            gamepad_buttons: ButtonState::new(),
+
             axes: AxisState::new(),
             mouse_position: Vec2::ZERO,
 
@@ -38,25 +44,25 @@ impl Input {
             match event.type_ {
                 SDL_KEYDOWN if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        self.buttons.set_down(key.into());
+                        self.keys.set_down(key);
                     }
                 }
 
                 SDL_KEYUP if event.key.repeat == 0 => {
                     if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        self.buttons.set_up(key.into());
+                        self.keys.set_up(key);
                     }
                 }
 
                 SDL_MOUSEBUTTONDOWN => {
                     if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        self.buttons.set_down(button.into());
+                        self.mouse_buttons.set_down(button);
                     }
                 }
 
                 SDL_MOUSEBUTTONUP => {
                     if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        self.buttons.set_up(button.into());
+                        self.mouse_buttons.set_up(button);
                     }
                 }
 
@@ -113,7 +119,7 @@ impl Input {
                         event.cbutton.button as i32,
                     )) {
                         if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            self.buttons.set_down(button.on(*gamepad_id).into());
+                            self.gamepad_buttons.set_down((*gamepad_id, button));
                         }
                     }
                 }
@@ -123,7 +129,7 @@ impl Input {
                         event.cbutton.button as i32,
                     )) {
                         if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            self.buttons.set_up(button.on(*gamepad_id).into());
+                            self.gamepad_buttons.set_up((*gamepad_id, button));
                         }
                     }
                 }
@@ -144,7 +150,7 @@ impl Input {
                                 value = 0.0;
                             }
 
-                            self.axes.set_value(axis.on(*gamepad_id), value);
+                            self.axes.set_value(*gamepad_id, axis, value);
                         }
                     }
                 }
@@ -155,87 +161,96 @@ impl Input {
     }
 
     pub fn clear(&mut self) {
-        self.buttons.clear();
+        self.keys.clear();
+        self.mouse_buttons.clear();
+        self.gamepad_buttons.clear();
         self.axes.clear();
     }
 
-    pub fn is_down(&self, button: impl Into<Button>) -> bool {
-        self.buttons.is_down(button.into())
+    pub fn is_key_down(&self, key: Key) -> bool {
+        self.keys.is_down(key)
     }
 
-    pub fn is_up(&self, button: impl Into<Button>) -> bool {
-        self.buttons.is_up(button.into())
+    pub fn is_key_up(&self, key: Key) -> bool {
+        self.keys.is_up(key)
     }
 
-    pub fn is_pressed(&self, button: impl Into<Button>) -> bool {
-        self.buttons.is_pressed(button.into())
+    pub fn is_key_pressed(&self, key: Key) -> bool {
+        self.keys.is_pressed(key)
     }
 
-    pub fn is_released(&self, button: impl Into<Button>) -> bool {
-        self.buttons.is_released(button.into())
+    pub fn is_key_released(&self, key: Key) -> bool {
+        self.keys.is_released(key)
     }
 
-    pub fn axis(&self, axis: WithGamepadId<GamepadAxis>) -> f32 {
-        self.axes.get_value(axis)
+    pub fn is_mouse_button_down(&self, button: MouseButton) -> bool {
+        self.mouse_buttons.is_down(button)
     }
 
-    pub fn has_axis_moved(&self, axis: WithGamepadId<GamepadAxis>) -> bool {
-        self.axes.has_moved(axis)
+    pub fn is_mouse_button_up(&self, button: MouseButton) -> bool {
+        self.mouse_buttons.is_up(button)
     }
 
-    pub fn stick(&self, stick: WithGamepadId<GamepadStick>) -> Vec2 {
-        let (x, y) = stick.to_axes();
-
-        let x_val = self.axes.get_value(x);
-        let y_val = self.axes.get_value(y);
-
-        Vec2::new(x_val, y_val)
+    pub fn is_mouse_button_pressed(&self, button: MouseButton) -> bool {
+        self.mouse_buttons.is_pressed(button)
     }
 
-    pub fn has_stick_moved(&self, stick: WithGamepadId<GamepadStick>) -> bool {
-        let (x, y) = stick.to_axes();
-
-        self.axes.has_moved(x) || self.axes.has_moved(y)
+    pub fn is_mouse_button_released(&self, button: MouseButton) -> bool {
+        self.mouse_buttons.is_released(button)
     }
 
     pub fn mouse_position(&self) -> Vec2 {
         self.mouse_position
     }
-}
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Button {
-    Key(Key),
-    MouseButton(MouseButton),
-    GamepadButton(WithGamepadId<GamepadButton>),
-}
+    pub fn is_gamepad_button_down(&self, player: usize, button: GamepadButton) -> bool {
+        self.gamepad_buttons.is_down((player, button))
+    }
 
-impl From<Key> for Button {
-    fn from(value: Key) -> Self {
-        Button::Key(value)
+    pub fn is_gamepad_button_up(&self, player: usize, button: GamepadButton) -> bool {
+        self.gamepad_buttons.is_up((player, button))
+    }
+
+    pub fn is_gamepad_button_pressed(&self, player: usize, button: GamepadButton) -> bool {
+        self.gamepad_buttons.is_pressed((player, button))
+    }
+
+    pub fn is_gamepad_button_released(&self, player: usize, button: GamepadButton) -> bool {
+        self.gamepad_buttons.is_released((player, button))
+    }
+
+    pub fn gamepad_axis(&self, player: usize, axis: GamepadAxis) -> f32 {
+        self.axes.get_value(player, axis)
+    }
+
+    pub fn has_gamepad_axis_moved(&self, player: usize, axis: GamepadAxis) -> bool {
+        self.axes.has_moved(player, axis)
+    }
+
+    pub fn gamepad_stick(&self, player: usize, stick: GamepadStick) -> Vec2 {
+        let (x, y) = stick.to_axes();
+
+        let x_val = self.axes.get_value(player, x);
+        let y_val = self.axes.get_value(player, y);
+
+        Vec2::new(x_val, y_val)
+    }
+
+    pub fn has_gamepad_stick_moved(&self, player: usize, stick: GamepadStick) -> bool {
+        let (x, y) = stick.to_axes();
+
+        self.axes.has_moved(player, x) || self.axes.has_moved(player, y)
     }
 }
 
-impl From<MouseButton> for Button {
-    fn from(value: MouseButton) -> Self {
-        Button::MouseButton(value)
-    }
+pub(crate) struct ButtonState<T> {
+    down: HashSet<T>,
+    pressed: HashSet<T>,
+    released: HashSet<T>,
 }
 
-impl From<WithGamepadId<GamepadButton>> for Button {
-    fn from(value: WithGamepadId<GamepadButton>) -> Self {
-        Button::GamepadButton(value)
-    }
-}
-
-pub(crate) struct ButtonState {
-    down: HashSet<Button>,
-    pressed: HashSet<Button>,
-    released: HashSet<Button>,
-}
-
-impl ButtonState {
-    fn new() -> ButtonState {
+impl<T: Copy + Eq + Hash> ButtonState<T> {
+    fn new() -> ButtonState<T> {
         ButtonState {
             down: HashSet::new(),
             pressed: HashSet::new(),
@@ -248,7 +263,7 @@ impl ButtonState {
         self.released.clear();
     }
 
-    fn set_down(&mut self, button: Button) {
+    fn set_down(&mut self, button: T) {
         let was_up = self.down.insert(button);
 
         if was_up {
@@ -256,7 +271,7 @@ impl ButtonState {
         }
     }
 
-    fn set_up(&mut self, button: Button) {
+    fn set_up(&mut self, button: T) {
         let was_down = self.down.remove(&button);
 
         if was_down {
@@ -264,26 +279,26 @@ impl ButtonState {
         }
     }
 
-    fn is_down(&self, button: Button) -> bool {
+    fn is_down(&self, button: T) -> bool {
         self.down.contains(&button)
     }
 
-    fn is_up(&self, button: Button) -> bool {
+    fn is_up(&self, button: T) -> bool {
         !self.down.contains(&button)
     }
 
-    fn is_pressed(&self, button: Button) -> bool {
+    fn is_pressed(&self, button: T) -> bool {
         self.pressed.contains(&button)
     }
 
-    fn is_released(&self, button: Button) -> bool {
+    fn is_released(&self, button: T) -> bool {
         self.released.contains(&button)
     }
 }
 
 pub(crate) struct AxisState {
-    curr: HashMap<WithGamepadId<GamepadAxis>, f32>,
-    prev: HashMap<WithGamepadId<GamepadAxis>, f32>,
+    curr: HashMap<(usize, GamepadAxis), f32>,
+    prev: HashMap<(usize, GamepadAxis), f32>,
 }
 
 impl AxisState {
@@ -298,15 +313,15 @@ impl AxisState {
         self.prev = self.curr.clone();
     }
 
-    fn get_value(&self, axis: WithGamepadId<GamepadAxis>) -> f32 {
-        *self.curr.get(&axis).unwrap_or(&0.0)
+    fn get_value(&self, player: usize, axis: GamepadAxis) -> f32 {
+        *self.curr.get(&(player, axis)).unwrap_or(&0.0)
     }
 
-    fn set_value(&mut self, axis: WithGamepadId<GamepadAxis>, value: f32) {
-        self.curr.insert(axis, value);
+    fn set_value(&mut self, player: usize, axis: GamepadAxis, value: f32) {
+        self.curr.insert((player, axis), value);
     }
 
-    fn has_moved(&self, axis: WithGamepadId<GamepadAxis>) -> bool {
-        self.curr.get(&axis) != self.prev.get(&axis)
+    fn has_moved(&self, player: usize, axis: GamepadAxis) -> bool {
+        self.curr.get(&(player, axis)) != self.prev.get(&(player, axis))
     }
 }

@@ -79,12 +79,12 @@ impl EventHandler for GameState {
             self.spawn_timer -= 1;
         }
 
-        if app.input.is_pressed(Key::A) {
+        if app.input.is_key_pressed(Key::A) {
             self.auto_spawn = !self.auto_spawn;
         }
 
-        let should_spawn =
-            self.spawn_timer == 0 && (app.input.is_down(MouseButton::Left) || self.auto_spawn);
+        let should_spawn = self.spawn_timer == 0
+            && (app.input.is_mouse_button_down(MouseButton::Left) || self.auto_spawn);
 
         if should_spawn {
             for _ in 0..INITIAL_BUNNIES {

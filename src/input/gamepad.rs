@@ -19,12 +19,6 @@ impl Drop for Gamepad {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct WithGamepadId<T> {
-    pub id: usize,
-    pub value: T,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum GamepadButton {
     A,
     B,
@@ -44,10 +38,6 @@ pub enum GamepadButton {
 }
 
 impl GamepadButton {
-    pub fn on(self, id: usize) -> WithGamepadId<GamepadButton> {
-        WithGamepadId { id, value: self }
-    }
-
     pub(crate) fn from_raw(raw: SDL_GameControllerButton) -> Option<GamepadButton> {
         match raw {
             SDL_CONTROLLER_BUTTON_A => Some(GamepadButton::A),
@@ -81,10 +71,6 @@ pub enum GamepadAxis {
 }
 
 impl GamepadAxis {
-    pub fn on(self, id: usize) -> WithGamepadId<GamepadAxis> {
-        WithGamepadId { id, value: self }
-    }
-
     pub(crate) fn from_raw(raw: SDL_GameControllerAxis) -> Option<GamepadAxis> {
         match raw {
             SDL_CONTROLLER_AXIS_LEFTX => Some(GamepadAxis::LeftStickX),
@@ -105,22 +91,10 @@ pub enum GamepadStick {
 }
 
 impl GamepadStick {
-    pub fn on(self, id: usize) -> WithGamepadId<GamepadStick> {
-        WithGamepadId { id, value: self }
-    }
-
     pub fn to_axes(&self) -> (GamepadAxis, GamepadAxis) {
         match self {
             GamepadStick::LeftStick => (GamepadAxis::LeftStickX, GamepadAxis::LeftStickY),
             GamepadStick::RightStick => (GamepadAxis::RightStickX, GamepadAxis::RightStickY),
         }
-    }
-}
-
-impl WithGamepadId<GamepadStick> {
-    pub fn to_axes(&self) -> (WithGamepadId<GamepadAxis>, WithGamepadId<GamepadAxis>) {
-        let (x, y) = self.value.to_axes();
-
-        (x.on(self.id), y.on(self.id))
     }
 }
