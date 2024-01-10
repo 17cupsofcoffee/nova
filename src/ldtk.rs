@@ -72,6 +72,12 @@ pub struct Level {
 
     pub iid: String,
 
+    #[serde(rename = "pxWid")]
+    pub width: i32,
+
+    #[serde(rename = "pxHei")]
+    pub height: i32,
+
     #[serde(default = "Vec::new")]
     pub layer_instances: Vec<LayerInstance>,
 }
@@ -127,7 +133,9 @@ pub struct LayerInstance {
 
     pub entity_instances: Vec<EntityInstance>,
 
-    pub grid_tiles: Vec<GridTile>,
+    pub grid_tiles: Vec<Tile>,
+
+    pub auto_layer_tiles: Vec<Tile>,
 
     pub int_grid_csv: Vec<i32>,
 }
@@ -157,7 +165,7 @@ impl LayerInstance {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GridTile {
+pub struct Tile {
     #[serde(rename = "t")]
     pub id: i32,
 
