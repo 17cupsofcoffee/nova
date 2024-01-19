@@ -2,7 +2,7 @@ use glam::{IVec2, Vec2};
 
 macro_rules! rect {
     ($rect:ident, $t:ty, $point:path, $zero:literal) => {
-        #[derive(Copy, Clone, Debug)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
         pub struct $rect {
             pub x: $t,
             pub y: $t,
