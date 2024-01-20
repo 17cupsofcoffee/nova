@@ -3,48 +3,13 @@ use glam::{BVec2, Mat3, Vec2};
 
 use crate::graphics::{
     Color, Graphics, Mesh, Rectangle, RenderPass, Shader, SpriteFont, Target, TextSegment, Texture,
-    Vertex,
+    Vertex, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER,
 };
 
 const MAX_SPRITES: usize = 2048;
 const MAX_VERTICES: usize = MAX_SPRITES * 4; // Cannot be greater than 32767!
 const MAX_INDICES: usize = MAX_SPRITES * 6;
 const INDEX_ARRAY: [u32; 6] = [0, 1, 2, 2, 3, 0];
-
-const VERTEX_SHADER: &str = "
-#version 150
-
-in vec2 a_pos;
-in vec2 a_uv;
-in vec4 a_color;
-
-uniform mat4 u_projection;
-
-out vec2 v_uv;
-out vec4 v_color;
-
-void main() {
-    v_uv = a_uv;
-    v_color = a_color;
-
-    gl_Position = u_projection * vec4(a_pos, 0.0, 1.0);
-}
-";
-
-const FRAGMENT_SHADER: &str = "
-#version 150
-
-in vec2 v_uv;
-in vec4 v_color;
-
-uniform sampler2D u_texture;
-
-out vec4 o_color;
-
-void main() {
-    o_color = texture(u_texture, v_uv) * v_color;
-}
-";
 
 pub struct DrawParams {
     color: Color,
@@ -137,7 +102,7 @@ impl Batcher {
 
         mesh.set_indices(&indices);
 
-        let default_shader = Shader::from_str(gfx, VERTEX_SHADER, FRAGMENT_SHADER);
+        let default_shader = Shader::from_str(gfx, DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER);
         let default_texture = Texture::from_data(gfx, 1, 1, &[255, 255, 255, 255]);
 
         Batcher {

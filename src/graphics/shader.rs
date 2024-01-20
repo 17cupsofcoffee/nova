@@ -4,6 +4,41 @@ use glow::HasContext;
 
 use crate::graphics::{Graphics, State};
 
+pub const DEFAULT_VERTEX_SHADER: &str = "
+#version 150
+
+in vec2 a_pos;
+in vec2 a_uv;
+in vec4 a_color;
+
+uniform mat4 u_projection;
+
+out vec2 v_uv;
+out vec4 v_color;
+
+void main() {
+    v_uv = a_uv;
+    v_color = a_color;
+
+    gl_Position = u_projection * vec4(a_pos, 0.0, 1.0);
+}
+";
+
+pub const DEFAULT_FRAGMENT_SHADER: &str = "
+#version 150
+
+in vec2 v_uv;
+in vec4 v_color;
+
+uniform sampler2D u_texture;
+
+out vec4 o_color;
+
+void main() {
+    o_color = texture(u_texture, v_uv) * v_color;
+}
+";
+
 #[derive(Clone)]
 pub struct Shader {
     pub(crate) raw: Rc<RawShader>,
