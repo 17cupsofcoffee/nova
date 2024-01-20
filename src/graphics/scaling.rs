@@ -3,7 +3,7 @@ use glam::Vec2;
 use crate::graphics::Canvas;
 use crate::window::Window;
 
-use super::{Batcher, Color, DrawParams, Graphics, Target};
+use super::{Batcher, DrawParams, Graphics, Target};
 
 pub struct Scaler {
     canvas: Canvas,
@@ -31,7 +31,7 @@ impl Scaler {
             DrawParams::new().scale(scale),
         );
 
-        batch.clear_and_draw(Color::BLACK, target);
+        batch.draw(target);
 
         self.offset = offset;
         self.scale = scale;

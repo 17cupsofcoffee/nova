@@ -123,12 +123,13 @@ impl EventHandler for GameState {
     }
 
     fn draw(&mut self, app: &mut App) {
+        app.gfx.clear(&app.window, Color::rgb(0.392, 0.584, 0.929));
+
         for bunny in &self.bunnies {
             self.batch
                 .texture(&self.texture, bunny.position, DrawParams::new());
         }
 
-        self.batch
-            .clear_and_draw(Color::rgb(0.392, 0.584, 0.929), &app.window);
+        self.batch.draw(&app.window);
     }
 }

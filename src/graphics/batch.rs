@@ -151,7 +151,7 @@ impl Batcher {
         }
     }
 
-    fn draw_internal(&mut self, clear_color: Option<Color>, target: &impl Target) {
+    pub fn draw(&mut self, target: &impl Target) {
         let mut index = 0;
 
         for mut batch in self.batches.drain(..) {
@@ -174,8 +174,6 @@ impl Batcher {
 
                     index_start: 0,
                     index_count: num_sprites * 6,
-
-                    clear_color: clear_color.filter(|_| index == 0),
                 });
 
                 index += num_sprites;
@@ -186,14 +184,6 @@ impl Batcher {
         self.sprites.clear();
         self.batches.push(Batch::default());
         self.matrices.clear();
-    }
-
-    pub fn clear_and_draw(&mut self, clear_color: Color, target: &impl Target) {
-        self.draw_internal(Some(clear_color), target)
-    }
-
-    pub fn draw(&mut self, target: &impl Target) {
-        self.draw_internal(None, target)
     }
 
     pub fn push_matrix(&mut self, matrix: Mat3) {

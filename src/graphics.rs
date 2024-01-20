@@ -75,20 +75,24 @@ impl Graphics {
         }
     }
 
+    pub fn clear(&self, target: &impl Target, color: Color) {
+        unsafe {
+            target.bind(self);
+
+            self.state
+                .gl
+                .clear_color(color.r, color.g, color.b, color.a);
+
+            self.state.gl.clear(glow::COLOR_BUFFER_BIT);
+        }
+    }
+
     pub fn draw<T>(&self, pass: RenderPass<'_, T>)
     where
         T: Target,
     {
         unsafe {
             pass.target.bind(self);
-
-            if let Some(color) = pass.clear_color {
-                self.state
-                    .gl
-                    .clear_color(color.r, color.g, color.b, color.a);
-
-                self.state.gl.clear(glow::COLOR_BUFFER_BIT);
-            }
 
             self.bind_vertex_buffer(Some(pass.mesh.raw.vertex_buffer));
             self.bind_index_buffer(Some(pass.mesh.raw.index_buffer));
@@ -275,6 +279,4 @@ pub struct RenderPass<'a, T> {
 
     pub index_start: usize,
     pub index_count: usize,
-
-    pub clear_color: Option<Color>,
 }
