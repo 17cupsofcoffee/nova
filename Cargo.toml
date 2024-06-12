@@ -10,8 +10,8 @@ edition = "2021"
 fermium = { version  = "22605", default-features = false }
 glow = "0.13"
 bytemuck = { version = "1.9", features = ["derive"] }
-glam = { version = "0.25", features = ["bytemuck"] }
-fontdue = "0.8"
+glam = { version = "0.28", features = ["bytemuck"] }
+fontdue = "0.9"
 png = "0.17"
 
 # Optional
