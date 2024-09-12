@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 # Core
-fermium = { version  = "22605", default-features = false }
+fermium = { version = "22605", default-features = false }
 glow = "0.14"
 bytemuck = { version = "1.9", features = ["derive"] }
 glam = { version = "0.28", features = ["bytemuck"] }
@@ -24,3 +24,4 @@ rand = "0.8"
 [features]
 default = ["ldtk"]
 ldtk = ["serde", "serde_json"]
+static_bundled_build = ["fermium/static_bundled_build"]
