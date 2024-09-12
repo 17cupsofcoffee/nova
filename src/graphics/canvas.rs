@@ -38,6 +38,10 @@ impl Canvas {
     pub fn size(&self) -> (i32, i32) {
         self.texture.size()
     }
+
+    pub fn into_texture(self) -> Texture {
+        self.texture
+    }
 }
 
 pub struct RawCanvas {
