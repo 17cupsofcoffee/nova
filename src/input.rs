@@ -1,3 +1,4 @@
+mod event;
 mod gamepad;
 mod key;
 mod mouse;
@@ -5,9 +6,9 @@ mod mouse;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
-use fermium::prelude::*;
 use glam::Vec2;
 
+pub use self::event::*;
 pub use self::gamepad::*;
 pub use self::key::*;
 pub use self::mouse::*;
@@ -21,7 +22,7 @@ pub struct Input {
     mouse_position: Vec2,
 
     gamepads: Vec<Option<Gamepad>>,
-    joystick_ids: HashMap<SDL_JoystickID, usize>,
+    joystick_ids: HashMap<JoystickID, usize>,
 }
 
 impl Input {
@@ -39,123 +40,52 @@ impl Input {
         }
     }
 
-    pub fn event(&mut self, event: &SDL_Event) {
-        unsafe {
-            match event.type_ {
-                SDL_KEYDOWN if event.key.repeat == 0 => {
-                    if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        self.keys.set_down(key);
+    pub fn event(&mut self, event: &Event) {
+        match event {
+            Event::KeyDown(key) => self.keys.set_down(*key),
+            Event::KeyUp(key) => self.keys.set_up(*key),
+            Event::MouseButtonDown(button) => self.mouse_buttons.set_down(*button),
+            Event::MouseButtonUp(button) => self.mouse_buttons.set_up(*button),
+            Event::MouseMotion { new_position } => self.mouse_position = *new_position,
+            Event::ControllerDeviceAdded { joystick, gamepad } => {
+                let empty_slot = self.gamepads.iter().position(Option::is_none);
+
+                let gamepad_id = match empty_slot {
+                    Some(slot) => {
+                        self.gamepads[slot] = Some(gamepad.clone());
+                        slot
                     }
-                }
-
-                SDL_KEYUP if event.key.repeat == 0 => {
-                    if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
-                        self.keys.set_up(key);
+                    None => {
+                        self.gamepads.push(Some(gamepad.clone()));
+                        self.gamepads.len() - 1
                     }
+                };
+
+                self.joystick_ids.insert(*joystick, gamepad_id);
+            }
+            Event::ControllerDeviceRemoved { joystick } => {
+                if let Some(gamepad_id) = self.joystick_ids.remove(joystick) {
+                    self.gamepads[gamepad_id] = None;
                 }
-
-                SDL_MOUSEBUTTONDOWN => {
-                    if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        self.mouse_buttons.set_down(button);
-                    }
+            }
+            Event::ControllerButtonDown { joystick, button } => {
+                if let Some(gamepad_id) = self.joystick_ids.get(joystick) {
+                    self.gamepad_buttons.set_down((*gamepad_id, *button));
                 }
-
-                SDL_MOUSEBUTTONUP => {
-                    if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
-                        self.mouse_buttons.set_up(button);
-                    }
+            }
+            Event::ControllerButtonUp { joystick, button } => {
+                if let Some(gamepad_id) = self.joystick_ids.get(joystick) {
+                    self.gamepad_buttons.set_up((*gamepad_id, *button));
                 }
-
-                SDL_MOUSEMOTION => {
-                    self.mouse_position = Vec2::new(event.motion.x as f32, event.motion.y as f32);
+            }
+            Event::ControllerAxisMotion {
+                joystick,
+                axis,
+                value,
+            } => {
+                if let Some(gamepad_id) = self.joystick_ids.get(joystick) {
+                    self.axes.set_value(*gamepad_id, *axis, *value);
                 }
-
-                SDL_CONTROLLERDEVICEADDED => {
-                    let handle = SDL_GameControllerOpen(event.cdevice.which);
-
-                    if handle.is_null() {
-                        // TODO: Should probably log here
-                        return;
-                    }
-
-                    let joystick = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(handle));
-
-                    let gamepad = Gamepad::from_raw(handle);
-
-                    let mut empty_slot = None;
-
-                    for (i, slot) in self.gamepads.iter_mut().enumerate() {
-                        if slot.is_none() {
-                            empty_slot = Some(i);
-                            break;
-                        }
-                    }
-
-                    let gamepad_id = match empty_slot {
-                        Some(slot) => {
-                            self.gamepads[slot] = Some(gamepad);
-                            slot
-                        }
-                        None => {
-                            self.gamepads.push(Some(gamepad));
-                            self.gamepads.len() - 1
-                        }
-                    };
-
-                    self.joystick_ids.insert(joystick, gamepad_id);
-                }
-
-                SDL_CONTROLLERDEVICEREMOVED => {
-                    if let Some(gamepad_id) = self
-                        .joystick_ids
-                        .remove(&SDL_JoystickID(event.cdevice.which))
-                    {
-                        self.gamepads[gamepad_id] = None;
-                    }
-                }
-
-                SDL_CONTROLLERBUTTONDOWN => {
-                    if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
-                        event.cbutton.button as i32,
-                    )) {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            self.gamepad_buttons.set_down((*gamepad_id, button));
-                        }
-                    }
-                }
-
-                SDL_CONTROLLERBUTTONUP => {
-                    if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
-                        event.cbutton.button as i32,
-                    )) {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            self.gamepad_buttons.set_up((*gamepad_id, button));
-                        }
-                    }
-                }
-
-                SDL_CONTROLLERAXISMOTION => {
-                    if let Some(axis) =
-                        GamepadAxis::from_raw(SDL_GameControllerAxis(event.caxis.axis as i32))
-                    {
-                        if let Some(gamepad_id) = self.joystick_ids.get(&event.cbutton.which) {
-                            let mut value = if event.caxis.value > 0 {
-                                event.caxis.value as f32 / 32767.0
-                            } else {
-                                event.caxis.value as f32 / 32768.0
-                            };
-
-                            // TODO: Add less hacky deadzone logic
-                            if value.abs() < 0.2 {
-                                value = 0.0;
-                            }
-
-                            self.axes.set_value(*gamepad_id, axis, value);
-                        }
-                    }
-                }
-
-                _ => {}
             }
         }
     }
