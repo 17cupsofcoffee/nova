@@ -9,8 +9,8 @@ mod shader;
 mod text;
 mod texture;
 
-use std::cell::Cell;
 use std::rc::Rc;
+use std::{cell::Cell, sync::Arc};
 
 use glam::Mat4;
 use glow::{Context, HasContext};
@@ -28,7 +28,7 @@ pub use texture::*;
 use crate::window::Window;
 
 struct State {
-    gl: Context,
+    gl: Arc<Context>,
 
     current_vertex_buffer: Cell<Option<glow::Buffer>>,
     current_index_buffer: Cell<Option<glow::Buffer>>,
@@ -65,7 +65,7 @@ impl Graphics {
 
         Graphics {
             state: Rc::new(State {
-                gl,
+                gl: Arc::new(gl),
                 current_vertex_buffer: Cell::new(None),
                 current_index_buffer: Cell::new(None),
                 current_shader: Cell::new(None),
@@ -227,6 +227,15 @@ impl Graphics {
                 self.state.current_canvas.set(canvas);
             }
         }
+    }
+
+    /// Get the raw OpenGL context.
+    ///
+    /// # Safety
+    ///
+    /// You have full access to the raw OpenGL context, so you can do anything you want with it.
+    pub unsafe fn gl(&self) -> &Arc<Context> {
+        &self.state.gl
     }
 }
 
