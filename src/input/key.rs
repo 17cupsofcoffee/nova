@@ -25,6 +25,7 @@ keys! {
     Tab => SDL_SCANCODE_TAB,
     CapsLock => SDL_SCANCODE_CAPSLOCK,
     Escape => SDL_SCANCODE_ESCAPE,
+    Delete => SDL_SCANCODE_DELETE,
 
     LeftShift => SDL_SCANCODE_LSHIFT,
     RightShift => SDL_SCANCODE_RSHIFT,
