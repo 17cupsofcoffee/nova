@@ -87,7 +87,7 @@ impl Input {
                     self.axes.set_value(*gamepad_id, *axis, *value);
                 }
             }
-            Event::WindowResized { .. } => {}
+            Event::WindowResized { .. } | Event::TextInput { .. } => {}
         }
     }
 
