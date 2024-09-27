@@ -9,8 +9,8 @@ mod shader;
 mod text;
 mod texture;
 
-use std::cell::Cell;
 use std::rc::Rc;
+use std::{cell::Cell, sync::Arc};
 
 use glam::Mat4;
 use glow::{Context, HasContext};
@@ -28,8 +28,9 @@ pub use texture::*;
 use crate::window::Window;
 
 struct State {
-    gl: Context,
+    gl: Arc<Context>,
 
+    vao: glow::NativeVertexArray,
     current_vertex_buffer: Cell<Option<glow::Buffer>>,
     current_index_buffer: Cell<Option<glow::Buffer>>,
     current_shader: Cell<Option<glow::Program>>,
@@ -46,8 +47,9 @@ impl Graphics {
     pub fn new(window: &mut Window) -> Graphics {
         let gl = window.load_gl();
 
+        let vao: glow::NativeVertexArray;
         unsafe {
-            let vao = gl.create_vertex_array().unwrap();
+            vao = gl.create_vertex_array().unwrap();
             gl.bind_vertex_array(Some(vao));
 
             gl.enable(glow::CULL_FACE);
@@ -65,7 +67,9 @@ impl Graphics {
 
         Graphics {
             state: Rc::new(State {
-                gl,
+                gl: Arc::new(gl),
+
+                vao,
                 current_vertex_buffer: Cell::new(None),
                 current_index_buffer: Cell::new(None),
                 current_shader: Cell::new(None),
@@ -94,6 +98,7 @@ impl Graphics {
         unsafe {
             pass.target.bind(self);
 
+            self.state.gl.bind_vertex_array(Some(self.state.vao));
             self.bind_vertex_buffer(Some(pass.mesh.raw.vertex_buffer));
             self.bind_index_buffer(Some(pass.mesh.raw.index_buffer));
             self.bind_shader(Some(pass.shader.raw.id));
@@ -227,6 +232,29 @@ impl Graphics {
                 self.state.current_canvas.set(canvas);
             }
         }
+    }
+
+    /// Get the raw OpenGL context.
+    ///
+    /// # Safety
+    ///
+    /// You have full access to the raw OpenGL context, so you can do anything you want with it.
+    pub unsafe fn gl(&self) -> &Arc<Context> {
+        &self.state.gl
+    }
+
+    /// Rebind everything to the current state.
+    ///
+    /// You should never need to call this, unless you're manipulating `.gl()` directly
+    pub fn rebind(&self) {
+        unsafe {
+            self.state.gl.bind_vertex_array(Some(self.state.vao));
+        }
+        self.bind_vertex_buffer(self.state.current_vertex_buffer.take());
+        self.bind_index_buffer(self.state.current_index_buffer.take());
+        self.bind_shader(self.state.current_shader.take());
+        self.bind_texture(self.state.current_texture.take());
+        self.bind_canvas(self.state.current_canvas.take());
     }
 }
 

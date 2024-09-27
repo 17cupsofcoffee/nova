@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 pub struct Timer {
+    start_time: Instant,
     last_time: Instant,
     accumulated_time: Duration,
     target_time: Duration,
@@ -12,6 +13,7 @@ impl Timer {
         let target_time = Duration::from_secs_f64(1.0 / tick_rate);
 
         Timer {
+            start_time: Instant::now(),
             last_time: Instant::now(),
             accumulated_time: Duration::ZERO,
             target_time,
@@ -72,5 +74,9 @@ impl Timer {
         if self.accumulated_time > self.max_lag {
             self.accumulated_time = self.max_lag;
         }
+    }
+
+    pub fn total_time(&self) -> Duration {
+        self.start_time.elapsed()
     }
 }

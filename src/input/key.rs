@@ -25,10 +25,16 @@ keys! {
     Tab => SDL_SCANCODE_TAB,
     CapsLock => SDL_SCANCODE_CAPSLOCK,
     Escape => SDL_SCANCODE_ESCAPE,
+    Delete => SDL_SCANCODE_DELETE,
 
     LeftShift => SDL_SCANCODE_LSHIFT,
+    RightShift => SDL_SCANCODE_RSHIFT,
     LeftCtrl => SDL_SCANCODE_LCTRL,
+    RightCtrl => SDL_SCANCODE_RCTRL,
     LeftAlt => SDL_SCANCODE_LALT,
+    RightAlt => SDL_SCANCODE_RALT,
+    LeftCommand => SDL_SCANCODE_LGUI,
+    RightCommand => SDL_SCANCODE_RGUI,
 
     Up => SDL_SCANCODE_UP,
     Down => SDL_SCANCODE_DOWN,
