@@ -25,3 +25,4 @@ rand = "0.8"
 default = ["ldtk"]
 ldtk = ["serde", "serde_json"]
 static_bundled_build = ["fermium/static_bundled_build"]
+serde = ["dep:serde", "glam/serde"]
