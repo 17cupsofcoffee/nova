@@ -1,16 +1,33 @@
+use std::{fmt, rc::Rc};
+
 use fermium::prelude::*;
 
-pub(crate) struct Gamepad {
+#[derive(Clone)]
+pub struct Gamepad(#[allow(dead_code)] Rc<GamepadInner>);
+
+impl PartialEq for Gamepad {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl fmt::Debug for Gamepad {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Gamepad(...)")
+    }
+}
+
+struct GamepadInner {
     handle: *mut SDL_GameController,
 }
 
 impl Gamepad {
     pub fn from_raw(raw: *mut SDL_GameController) -> Gamepad {
-        Gamepad { handle: raw }
+        Gamepad(Rc::new(GamepadInner { handle: raw }))
     }
 }
 
-impl Drop for Gamepad {
+impl Drop for GamepadInner {
     fn drop(&mut self) {
         unsafe {
             SDL_GameControllerClose(self.handle);
