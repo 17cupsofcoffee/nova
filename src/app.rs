@@ -1,11 +1,22 @@
 use fermium::prelude::SDL_QUIT;
 
 use crate::graphics::Graphics;
-use crate::input::Input;
+use crate::input::{Event, Input};
 use crate::time::Timer;
 use crate::window::Window;
 
+/// The generic event handler for the game. You should implement this yourself
+///
+/// ## Call order:
+/// 1. `event`: 0 to n times based on what events are received
+/// 2. `update`: 0 to n times based on the tick rate
+/// 3. `draw`: 1 time per frame
 pub trait EventHandler {
+    /// Handle a raw event for the game. This is useful for one-off events, like key down events.
+    /// For continuous events, like moving a character when you hold a key, use the update method.
+    ///
+    /// note: this will be called after the `app.input` has been updated with the event.
+    fn event(&mut self, _app: &mut App, _event: Event) {}
     fn update(&mut self, _app: &mut App) {}
     fn draw(&mut self, _app: &mut App) {}
 }
@@ -42,7 +53,7 @@ impl App {
         while self.is_running {
             self.timer.tick_until_update_ready();
 
-            self.handle_events();
+            self.handle_events(event_handler);
 
             while self.timer.consume_time() {
                 event_handler.update(self);
@@ -56,7 +67,7 @@ impl App {
         }
     }
 
-    pub fn handle_events(&mut self) {
+    pub fn handle_events(&mut self, event_handler: &mut impl EventHandler) {
         while let Some(event) = self.window.next_event() {
             unsafe {
                 if event.type_ == SDL_QUIT {
@@ -64,7 +75,11 @@ impl App {
                 }
             }
 
-            self.input.event(&event);
+            if let Some(event) = crate::input::Event::try_from_sdl_event(&event) {
+                self.input.event(&event);
+
+                event_handler.event(self, event);
+            }
         }
     }
 }
