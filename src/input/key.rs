@@ -1,4 +1,4 @@
-use fermium::prelude::*;
+use sdl3_sys::scancode::*;
 
 macro_rules! keys {
     ($($key:ident => $raw:ident),*$(,)?) => {

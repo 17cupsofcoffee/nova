@@ -1,7 +1,13 @@
 use std::ffi::CString;
+use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use fermium::prelude::*;
+use sdl3_sys::error::*;
+use sdl3_sys::events::*;
+use sdl3_sys::init::*;
+use sdl3_sys::stdinc::*;
+use sdl3_sys::version::*;
+use sdl3_sys::video::*;
 
 use glow::Context;
 
@@ -21,7 +27,7 @@ impl Window {
                 panic!("SDL already initialized");
             }
 
-            if SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0 {
+            if !SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD) {
                 sdl_panic!();
             }
 
@@ -29,25 +35,17 @@ impl Window {
 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-            SDL_GL_SetAttribute(
-                SDL_GL_CONTEXT_PROFILE_MASK,
-                SDL_GL_CONTEXT_PROFILE_CORE.0 as i32,
-            );
-            SDL_GL_SetAttribute(
-                SDL_GL_CONTEXT_FLAGS,
-                SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG.0 as i32,
-            );
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
             let c_title = CString::new(title).unwrap();
 
             let window = SDL_CreateWindow(
                 c_title.as_ptr(),
-                SDL_WINDOWPOS_CENTERED,
-                SDL_WINDOWPOS_CENTERED,
                 width,
                 height,
-                (SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN).0,
+                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN,
             );
 
             if window.is_null() {
@@ -64,17 +62,13 @@ impl Window {
 
             SDL_GL_SetSwapInterval(1);
 
-            let mut version_info = SDL_version {
-                major: 0,
-                minor: 0,
-                patch: 0,
-            };
-
-            SDL_GetVersion(&mut version_info);
+            let version = SDL_GetVersion();
 
             println!(
                 "SDL Version: {}.{}.{}",
-                version_info.major, version_info.minor, version_info.patch
+                SDL_VERSIONNUM_MAJOR(version),
+                SDL_VERSIONNUM_MINOR(version),
+                SDL_VERSIONNUM_MICRO(version),
             );
 
             Window {
@@ -91,7 +85,7 @@ impl Window {
             let mut w = 0;
             let mut h = 0;
 
-            SDL_GL_GetDrawableSize(self.window, &mut w, &mut h);
+            SDL_GetWindowSizeInPixels(self.window, &mut w, &mut h);
 
             (w as u32, h as u32)
         }
@@ -101,17 +95,21 @@ impl Window {
         unsafe {
             Context::from_loader_function(|s| {
                 let c_str = CString::new(s).unwrap();
-                SDL_GL_GetProcAddress(c_str.as_ptr())
+                if let Some(ptr) = SDL_GL_GetProcAddress(c_str.as_ptr()) {
+                    ptr as *mut _
+                } else {
+                    std::ptr::null()
+                }
             })
         }
     }
 
     pub fn next_event(&mut self) -> Option<SDL_Event> {
         unsafe {
-            let mut event = SDL_Event::default();
+            let mut event = MaybeUninit::uninit();
 
-            if SDL_PollEvent(&mut event) == 1 {
-                Some(event)
+            if SDL_PollEvent(event.as_mut_ptr()) {
+                Some(event.assume_init())
             } else {
                 None
             }
@@ -141,7 +139,7 @@ impl Window {
 impl Drop for Window {
     fn drop(&mut self) {
         unsafe {
-            SDL_GL_DeleteContext(self.gl);
+            SDL_GL_DestroyContext(self.gl);
             SDL_DestroyWindow(self.window);
         }
     }
@@ -149,14 +147,12 @@ impl Drop for Window {
 
 pub(crate) unsafe fn get_err() -> String {
     let mut v: Vec<u8> = Vec::with_capacity(1024);
-    let capacity = v.capacity();
-
-    SDL_GetErrorMsg(v.as_mut_ptr().cast(), capacity.try_into().unwrap());
+    SDL_strlcpy(v.as_mut_ptr().cast(), SDL_GetError(), v.capacity());
 
     let mut len = 0;
     let mut p = v.as_mut_ptr();
 
-    while *p != 0 && len <= capacity {
+    while *p != 0 && len <= v.capacity() {
         p = p.add(1);
         len += 1;
     }

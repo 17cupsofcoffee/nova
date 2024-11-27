@@ -1,5 +1,7 @@
-use fermium::prelude::*;
 use glam::Vec2;
+use sdl3_sys::events::*;
+use sdl3_sys::gamepad::*;
+use sdl3_sys::joystick::*;
 
 /// This is a unique ID for a joystick for the time it is connected to the
 /// system.
@@ -11,15 +13,12 @@ use glam::Vec2;
 pub struct JoystickID(SDL_JoystickID);
 
 impl JoystickID {
-    fn from_raw(id: i32) -> JoystickID {
-        JoystickID(SDL_JoystickID(id))
+    fn from_raw(id: SDL_JoystickID) -> JoystickID {
+        JoystickID(id)
     }
-    fn from_controller_handle(handle: *mut SDL_GameController) -> JoystickID {
-        unsafe {
-            JoystickID(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(
-                handle,
-            )))
-        }
+
+    fn from_controller_handle(handle: *mut SDL_Gamepad) -> JoystickID {
+        unsafe { JoystickID(SDL_GetJoystickID(SDL_GetGamepadJoystick(handle))) }
     }
 }
 
@@ -69,39 +68,39 @@ pub enum Event {
 impl Event {
     pub fn try_from_sdl_event(event: &SDL_Event) -> Option<Self> {
         unsafe {
-            match event.type_ {
-                SDL_KEYDOWN if event.key.repeat == 0 => {
-                    if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
+            match SDL_EventType(event.r#type) {
+                SDL_EVENT_KEY_DOWN if event.key.repeat => {
+                    if let Some(key) = Key::from_raw(event.key.scancode) {
                         return Some(Event::KeyDown(key));
                     }
                 }
 
-                SDL_KEYUP if event.key.repeat == 0 => {
-                    if let Some(key) = Key::from_raw(event.key.keysym.scancode) {
+                SDL_EVENT_KEY_UP if event.key.repeat => {
+                    if let Some(key) = Key::from_raw(event.key.scancode) {
                         return Some(Event::KeyUp(key));
                     }
                 }
 
-                SDL_MOUSEBUTTONDOWN => {
-                    if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
+                SDL_EVENT_MOUSE_BUTTON_DOWN => {
+                    if let Some(button) = MouseButton::from_raw(event.button.button as i32) {
                         return Some(Event::MouseButtonDown(button));
                     }
                 }
 
-                SDL_MOUSEBUTTONUP => {
-                    if let Some(button) = MouseButton::from_raw(event.button.button as u32) {
+                SDL_EVENT_MOUSE_BUTTON_UP => {
+                    if let Some(button) = MouseButton::from_raw(event.button.button as i32) {
                         return Some(Event::MouseButtonUp(button));
                     }
                 }
 
-                SDL_MOUSEMOTION => {
+                SDL_EVENT_MOUSE_MOTION => {
                     return Some(Event::MouseMotion {
-                        new_position: Vec2::new(event.motion.x as f32, event.motion.y as f32),
+                        new_position: Vec2::new(event.motion.x, event.motion.y),
                     });
                 }
 
-                SDL_CONTROLLERDEVICEADDED => {
-                    let handle = SDL_GameControllerOpen(event.cdevice.which);
+                SDL_EVENT_GAMEPAD_ADDED => {
+                    let handle = SDL_OpenGamepad(event.cdevice.which);
 
                     if handle.is_null() {
                         // TODO: Should probably log here
@@ -115,16 +114,16 @@ impl Event {
                     return Some(Event::ControllerDeviceAdded { joystick, gamepad });
                 }
 
-                SDL_CONTROLLERDEVICEREMOVED => {
+                SDL_EVENT_GAMEPAD_REMOVED => {
                     return Some(Event::ControllerDeviceRemoved {
                         joystick: JoystickID::from_raw(event.cdevice.which),
                     });
                 }
 
-                SDL_CONTROLLERBUTTONDOWN => {
-                    if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
-                        event.cbutton.button as i32,
-                    )) {
+                SDL_EVENT_GAMEPAD_BUTTON_DOWN => {
+                    if let Some(button) =
+                        GamepadButton::from_raw(SDL_GamepadButton(event.gbutton.button as i32))
+                    {
                         return Some(Event::ControllerButtonDown {
                             joystick: JoystickID::from_raw(event.cdevice.which),
                             button,
@@ -132,10 +131,10 @@ impl Event {
                     }
                 }
 
-                SDL_CONTROLLERBUTTONUP => {
-                    if let Some(button) = GamepadButton::from_raw(SDL_GameControllerButton(
-                        event.cbutton.button as i32,
-                    )) {
+                SDL_EVENT_GAMEPAD_BUTTON_UP => {
+                    if let Some(button) =
+                        GamepadButton::from_raw(SDL_GamepadButton(event.gbutton.button as i32))
+                    {
                         return Some(Event::ControllerButtonUp {
                             joystick: JoystickID::from_raw(event.cdevice.which),
                             button,
@@ -143,14 +142,14 @@ impl Event {
                     }
                 }
 
-                SDL_CONTROLLERAXISMOTION => {
+                SDL_EVENT_GAMEPAD_AXIS_MOTION => {
                     if let Some(axis) =
-                        GamepadAxis::from_raw(SDL_GameControllerAxis(event.caxis.axis as i32))
+                        GamepadAxis::from_raw(SDL_GamepadAxis(event.gaxis.axis as i32))
                     {
-                        let mut value = if event.caxis.value > 0 {
-                            event.caxis.value as f32 / 32767.0
+                        let mut value = if event.gaxis.value > 0 {
+                            event.gaxis.value as f32 / 32767.0
                         } else {
-                            event.caxis.value as f32 / 32768.0
+                            event.gaxis.value as f32 / 32768.0
                         };
 
                         // TODO: Add less hacky deadzone logic
@@ -165,7 +164,7 @@ impl Event {
                     }
                 }
 
-                SDL_WINDOWEVENT => {
+                SDL_EVENT_WINDOW_RESIZED => {
                     let e = &event.window;
                     if e.data1 > 0 && e.data2 > 0 {
                         let width = e.data1 as u32;
@@ -174,9 +173,8 @@ impl Event {
                     }
                 }
 
-                SDL_TEXTINPUT => {
-                    let e = &event.text.text;
-                    let text = std::ffi::CStr::from_ptr(e.as_ptr())
+                SDL_EVENT_TEXT_INPUT => {
+                    let text = std::ffi::CStr::from_ptr(event.text.text)
                         .to_string_lossy()
                         .into_owned();
                     return Some(Event::TextInput { text });

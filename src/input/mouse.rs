@@ -1,4 +1,4 @@
-use fermium::prelude::*;
+use sdl3_sys::mouse::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum MouseButton {
@@ -10,7 +10,7 @@ pub enum MouseButton {
 }
 
 impl MouseButton {
-    pub(crate) fn from_raw(raw: u32) -> Option<MouseButton> {
+    pub(crate) fn from_raw(raw: i32) -> Option<MouseButton> {
         match raw {
             SDL_BUTTON_LEFT => Some(MouseButton::Left),
             SDL_BUTTON_MIDDLE => Some(MouseButton::Middle),
