@@ -142,7 +142,7 @@ impl RawTexture {
                 0,
                 glow::RGBA,
                 glow::UNSIGNED_BYTE,
-                Some(data),
+                PixelUnpackData::Slice(Some(data)),
             );
 
             RawTexture {
@@ -170,7 +170,7 @@ impl RawTexture {
                 height,
                 glow::RGBA,
                 glow::UNSIGNED_BYTE,
-                PixelUnpackData::Slice(data),
+                PixelUnpackData::Slice(Some(data)),
             )
         }
     }
