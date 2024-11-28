@@ -69,13 +69,13 @@ impl Event {
     pub fn try_from_sdl_event(event: &SDL_Event) -> Option<Self> {
         unsafe {
             match SDL_EventType(event.r#type) {
-                SDL_EVENT_KEY_DOWN if event.key.repeat => {
+                SDL_EVENT_KEY_DOWN if !event.key.repeat => {
                     if let Some(key) = Key::from_raw(event.key.scancode) {
                         return Some(Event::KeyDown(key));
                     }
                 }
 
-                SDL_EVENT_KEY_UP if event.key.repeat => {
+                SDL_EVENT_KEY_UP if !event.key.repeat => {
                     if let Some(key) = Key::from_raw(event.key.scancode) {
                         return Some(Event::KeyUp(key));
                     }
