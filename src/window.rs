@@ -146,22 +146,24 @@ impl Drop for Window {
 }
 
 pub(crate) unsafe fn get_err() -> String {
-    let mut v: Vec<u8> = Vec::with_capacity(1024);
-    SDL_strlcpy(v.as_mut_ptr().cast(), SDL_GetError(), v.capacity());
+    unsafe {
+        let mut v: Vec<u8> = Vec::with_capacity(1024);
+        SDL_strlcpy(v.as_mut_ptr().cast(), SDL_GetError(), v.capacity());
 
-    let mut len = 0;
-    let mut p = v.as_mut_ptr();
+        let mut len = 0;
+        let mut p = v.as_mut_ptr();
 
-    while *p != 0 && len <= v.capacity() {
-        p = p.add(1);
-        len += 1;
-    }
+        while *p != 0 && len <= v.capacity() {
+            p = p.add(1);
+            len += 1;
+        }
 
-    v.set_len(len);
+        v.set_len(len);
 
-    match String::from_utf8(v) {
-        Ok(s) => s,
-        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+        match String::from_utf8(v) {
+            Ok(s) => s,
+            Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+        }
     }
 }
 
