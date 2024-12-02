@@ -1,5 +1,3 @@
-use sdl3_sys::events::SDL_EVENT_QUIT;
-
 use crate::graphics::Graphics;
 use crate::input::{Event, Input};
 use crate::time::Timer;
@@ -69,13 +67,11 @@ impl App {
 
     pub fn handle_events(&mut self, event_handler: &mut impl EventHandler) {
         while let Some(event) = self.window.next_event() {
-            unsafe {
-                if event.r#type == SDL_EVENT_QUIT.0 {
+            if let Some(event) = Event::try_from_sdl_event(&event) {
+                if let Event::Quit = event {
                     self.is_running = false;
                 }
-            }
 
-            if let Some(event) = crate::input::Event::try_from_sdl_event(&event) {
                 self.input.event(&event);
 
                 event_handler.event(self, event);

@@ -47,6 +47,7 @@ impl Input {
             Event::MouseButtonDown(button) => self.mouse_buttons.set_down(*button),
             Event::MouseButtonUp(button) => self.mouse_buttons.set_up(*button),
             Event::MouseMotion { new_position } => self.mouse_position = *new_position,
+
             Event::ControllerDeviceAdded { joystick, gamepad } => {
                 let empty_slot = self.gamepads.iter().position(Option::is_none);
 
@@ -63,21 +64,25 @@ impl Input {
 
                 self.joystick_ids.insert(*joystick, gamepad_id);
             }
+
             Event::ControllerDeviceRemoved { joystick } => {
                 if let Some(gamepad_id) = self.joystick_ids.remove(joystick) {
                     self.gamepads[gamepad_id] = None;
                 }
             }
+
             Event::ControllerButtonDown { joystick, button } => {
                 if let Some(gamepad_id) = self.joystick_ids.get(joystick) {
                     self.gamepad_buttons.set_down((*gamepad_id, *button));
                 }
             }
+
             Event::ControllerButtonUp { joystick, button } => {
                 if let Some(gamepad_id) = self.joystick_ids.get(joystick) {
                     self.gamepad_buttons.set_up((*gamepad_id, *button));
                 }
             }
+
             Event::ControllerAxisMotion {
                 joystick,
                 axis,
@@ -87,7 +92,8 @@ impl Input {
                     self.axes.set_value(*gamepad_id, *axis, *value);
                 }
             }
-            Event::WindowResized { .. } | Event::TextInput { .. } => {}
+
+            _ => {}
         }
     }
 

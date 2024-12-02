@@ -26,6 +26,7 @@ use super::{Gamepad, GamepadAxis, GamepadButton, Key, MouseButton};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
+    Quit,
     KeyDown(Key),
     KeyUp(Key),
     MouseButtonDown(MouseButton),
@@ -69,6 +70,10 @@ impl Event {
     pub fn try_from_sdl_event(event: &SDL_Event) -> Option<Self> {
         unsafe {
             match SDL_EventType(event.r#type) {
+                SDL_EVENT_QUIT => {
+                    return Some(Event::Quit);
+                }
+
                 SDL_EVENT_KEY_DOWN if !event.key.repeat => {
                     if let Some(key) = Key::from_raw(event.key.scancode) {
                         return Some(Event::KeyDown(key));
