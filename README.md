@@ -10,9 +10,9 @@ on between 2018 and 2022. It aims to be smaller and simpler, with less global st
 ## Features
 
 - `ldtk` (enabled by default): enables a module to load [ldtk](https://ldtk.io/) files.
-- `static_bundled_build`: enables automatic SDL2 library building and linking. Building SDL2 can take a bit during that first build (usually 1 minute or more).
+- `static_bundled_build`: enables automatic SDL3 library building and linking. Building SDL3 can take a bit during that first build (usually 1 minute or more).
 
 ## Notes
 
 - This framework is very heavily inspired by [FNA](https://github.com/FNA-XNA/FNA), and NoelFB's lightweight game engines ([Blah](https://github.com/NoelFB/blah) and [Foster](https://github.com/NoelFB/Foster)).
-- It depends on [SDL2](https://www.libsdl.org/) for interacting with the underlying platform.
+- It depends on [SDL3](https://www.libsdl.org/) for interacting with the underlying platform.
