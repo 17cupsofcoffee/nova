@@ -67,15 +67,13 @@ impl App {
 
     pub fn handle_events(&mut self, event_handler: &mut impl EventHandler) {
         while let Some(event) = self.window.next_event() {
-            if let Some(event) = Event::try_from_sdl_event(&event) {
-                if let Event::Quit = event {
-                    self.is_running = false;
-                }
-
-                self.input.event(&event);
-
-                event_handler.event(self, event);
+            if let Event::Quit = event {
+                self.is_running = false;
             }
+
+            self.input.event(&event);
+
+            event_handler.event(self, event);
         }
     }
 }

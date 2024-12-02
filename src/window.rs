@@ -104,12 +104,14 @@ impl Window {
         }
     }
 
-    pub fn next_event(&mut self) -> Option<SDL_Event> {
+    pub fn next_event(&mut self) -> Option<Event> {
         unsafe {
-            let mut event = MaybeUninit::uninit();
+            let mut raw_event = MaybeUninit::uninit();
 
-            if SDL_PollEvent(event.as_mut_ptr()) {
-                Some(event.assume_init())
+            if SDL_PollEvent(raw_event.as_mut_ptr()) {
+                let raw_event = raw_event.assume_init();
+
+                Event::try_from_sdl_event(&raw_event)
             } else {
                 None
             }
@@ -172,3 +174,5 @@ macro_rules! sdl_panic {
 }
 
 pub(crate) use sdl_panic;
+
+use crate::input::Event;
