@@ -177,6 +177,7 @@ impl Event {
                     let text = std::ffi::CStr::from_ptr(event.text.text)
                         .to_string_lossy()
                         .into_owned();
+
                     return Some(Event::TextInput { text });
                 }
 

@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use sdl3_sys::error::*;
 use sdl3_sys::events::*;
 use sdl3_sys::init::*;
+use sdl3_sys::keyboard::*;
 use sdl3_sys::version::*;
 use sdl3_sys::video::*;
 
@@ -131,6 +132,18 @@ impl Window {
 
         unsafe {
             SDL_SetWindowTitle(self.window, c_title.as_ptr());
+        }
+    }
+
+    pub fn start_text_input(&mut self) {
+        unsafe {
+            SDL_StartTextInput(self.window);
+        }
+    }
+
+    pub fn stop_text_input(&mut self) {
+        unsafe {
+            SDL_StopTextInput(self.window);
         }
     }
 }
