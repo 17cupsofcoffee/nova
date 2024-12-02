@@ -1,11 +1,10 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use sdl3_sys::error::*;
 use sdl3_sys::events::*;
 use sdl3_sys::init::*;
-use sdl3_sys::stdinc::*;
 use sdl3_sys::version::*;
 use sdl3_sys::video::*;
 
@@ -146,22 +145,10 @@ impl Drop for Window {
 }
 
 pub(crate) unsafe fn get_err() -> String {
-    let mut v: Vec<u8> = Vec::with_capacity(1024);
-    SDL_strlcpy(v.as_mut_ptr().cast(), SDL_GetError(), v.capacity());
-
-    let mut len = 0;
-    let mut p = v.as_mut_ptr();
-
-    while *p != 0 && len <= v.capacity() {
-        p = p.add(1);
-        len += 1;
-    }
-
-    v.set_len(len);
-
-    match String::from_utf8(v) {
-        Ok(s) => s,
-        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
+    unsafe {
+        CStr::from_ptr(SDL_GetError())
+            .to_string_lossy()
+            .into_owned()
     }
 }
 
