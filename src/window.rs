@@ -111,7 +111,7 @@ impl Window {
             if SDL_PollEvent(raw_event.as_mut_ptr()) {
                 let raw_event = raw_event.assume_init();
 
-                Event::try_from_sdl_event(&raw_event)
+                Event::from_raw(&raw_event)
             } else {
                 None
             }

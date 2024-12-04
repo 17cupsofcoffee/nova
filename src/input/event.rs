@@ -11,13 +11,16 @@ pub enum Event {
     KeyUp(Key),
     MouseButtonDown(MouseButton),
     MouseButtonUp(MouseButton),
+
     MouseMotion {
         new_position: Vec2,
     },
+
     ControllerDeviceAdded {
         joystick: JoystickID,
         gamepad: Gamepad,
     },
+
     ControllerDeviceRemoved {
         joystick: JoystickID,
     },
@@ -26,6 +29,7 @@ pub enum Event {
         joystick: JoystickID,
         button: GamepadButton,
     },
+
     ControllerButtonUp {
         joystick: JoystickID,
         button: GamepadButton,
@@ -36,6 +40,7 @@ pub enum Event {
         axis: GamepadAxis,
         value: f32,
     },
+
     WindowResized {
         width: u32,
         height: u32,
@@ -47,7 +52,7 @@ pub enum Event {
 }
 
 impl Event {
-    pub fn try_from_sdl_event(event: &SDL_Event) -> Option<Self> {
+    pub fn from_raw(event: &SDL_Event) -> Option<Event> {
         unsafe {
             match SDL_EventType(event.r#type) {
                 SDL_EVENT_QUIT => {
@@ -168,6 +173,7 @@ impl Event {
                 _ => {}
             }
         }
+
         None
     }
 }
