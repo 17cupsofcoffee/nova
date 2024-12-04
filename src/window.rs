@@ -93,9 +93,8 @@ impl Window {
 
     pub fn load_gl(&self) -> Context {
         unsafe {
-            Context::from_loader_function(|s| {
-                let c_str = CString::new(s).unwrap();
-                if let Some(ptr) = SDL_GL_GetProcAddress(c_str.as_ptr()) {
+            Context::from_loader_function_cstr(|s| {
+                if let Some(ptr) = SDL_GL_GetProcAddress(s.as_ptr()) {
                     ptr as *mut _
                 } else {
                     std::ptr::null()
