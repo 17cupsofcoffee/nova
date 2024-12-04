@@ -3,7 +3,7 @@
 
 use nova::app::{App, EventHandler};
 use nova::graphics::{Batcher, Color, DrawParams, Texture};
-use nova::input::{Key, MouseButton};
+use nova::input::{GamepadButton, Key, MouseButton};
 use nova::math::Vec2;
 use rand::rngs::ThreadRng;
 use rand::{self, Rng};
@@ -83,8 +83,11 @@ impl EventHandler for GameState {
             self.auto_spawn = !self.auto_spawn;
         }
 
-        let should_spawn = self.spawn_timer == 0
-            && (app.input.is_mouse_button_down(MouseButton::Left) || self.auto_spawn);
+        let button_down = app.input.is_key_down(Key::Space)
+            || app.input.is_mouse_button_down(MouseButton::Left)
+            || app.input.is_gamepad_button_down(0, GamepadButton::A);
+
+        let should_spawn = self.spawn_timer == 0 && (button_down || self.auto_spawn);
 
         if should_spawn {
             for _ in 0..INITIAL_BUNNIES {

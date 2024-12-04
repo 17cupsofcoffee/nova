@@ -1,9 +1,25 @@
 use std::{fmt, rc::Rc};
 
 use sdl3_sys::gamepad::*;
+use sdl3_sys::joystick::*;
+
+/// This is a unique ID for a joystick for the time it is connected to the
+/// system.
+///
+/// It is never reused for the lifetime of the application. If the joystick is
+/// disconnected and reconnected, it will get a new ID.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct JoystickID(SDL_JoystickID);
+
+impl JoystickID {
+    pub fn from_raw(id: SDL_JoystickID) -> JoystickID {
+        JoystickID(id)
+    }
+}
 
 #[derive(Clone)]
-pub struct Gamepad(#[allow(dead_code)] Rc<GamepadInner>);
+pub struct Gamepad(Rc<GamepadInner>);
 
 impl PartialEq for Gamepad {
     fn eq(&self, other: &Self) -> bool {

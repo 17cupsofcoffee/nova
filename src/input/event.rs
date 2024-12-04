@@ -1,28 +1,8 @@
 use glam::Vec2;
 use sdl3_sys::events::*;
 use sdl3_sys::gamepad::*;
-use sdl3_sys::joystick::*;
 
-/// This is a unique ID for a joystick for the time it is connected to the
-/// system.
-///
-/// It is never reused for the lifetime of the application. If the joystick is
-/// disconnected and reconnected, it will get a new ID.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(transparent)]
-pub struct JoystickID(SDL_JoystickID);
-
-impl JoystickID {
-    fn from_raw(id: SDL_JoystickID) -> JoystickID {
-        JoystickID(id)
-    }
-
-    fn from_controller_handle(handle: *mut SDL_Gamepad) -> JoystickID {
-        unsafe { JoystickID(SDL_GetJoystickID(SDL_GetGamepadJoystick(handle))) }
-    }
-}
-
-use super::{Gamepad, GamepadAxis, GamepadButton, Key, MouseButton};
+use super::{Gamepad, GamepadAxis, GamepadButton, JoystickID, Key, MouseButton};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
@@ -105,15 +85,14 @@ impl Event {
                 }
 
                 SDL_EVENT_GAMEPAD_ADDED => {
-                    let handle = SDL_OpenGamepad(event.cdevice.which);
+                    let handle = SDL_OpenGamepad(event.gdevice.which);
 
                     if handle.is_null() {
                         // TODO: Should probably log here
                         return None;
                     }
 
-                    let joystick = JoystickID::from_controller_handle(handle);
-
+                    let joystick = JoystickID::from_raw(event.gdevice.which);
                     let gamepad = Gamepad::from_raw(handle);
 
                     return Some(Event::ControllerDeviceAdded { joystick, gamepad });
@@ -121,7 +100,7 @@ impl Event {
 
                 SDL_EVENT_GAMEPAD_REMOVED => {
                     return Some(Event::ControllerDeviceRemoved {
-                        joystick: JoystickID::from_raw(event.cdevice.which),
+                        joystick: JoystickID::from_raw(event.gdevice.which),
                     });
                 }
 
@@ -130,7 +109,7 @@ impl Event {
                         GamepadButton::from_raw(SDL_GamepadButton(event.gbutton.button as i32))
                     {
                         return Some(Event::ControllerButtonDown {
-                            joystick: JoystickID::from_raw(event.cdevice.which),
+                            joystick: JoystickID::from_raw(event.gdevice.which),
                             button,
                         });
                     }
@@ -141,7 +120,7 @@ impl Event {
                         GamepadButton::from_raw(SDL_GamepadButton(event.gbutton.button as i32))
                     {
                         return Some(Event::ControllerButtonUp {
-                            joystick: JoystickID::from_raw(event.cdevice.which),
+                            joystick: JoystickID::from_raw(event.gdevice.which),
                             button,
                         });
                     }
@@ -162,7 +141,7 @@ impl Event {
                             value = 0.0;
                         }
                         return Some(Event::ControllerAxisMotion {
-                            joystick: JoystickID::from_raw(event.cdevice.which),
+                            joystick: JoystickID::from_raw(event.gdevice.which),
                             axis,
                             value,
                         });
