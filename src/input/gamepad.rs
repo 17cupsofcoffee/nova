@@ -1,9 +1,25 @@
 use std::{fmt, rc::Rc};
 
-use fermium::prelude::*;
+use sdl3_sys::gamepad::*;
+use sdl3_sys::joystick::*;
+
+/// This is a unique ID for a joystick for the time it is connected to the
+/// system.
+///
+/// It is never reused for the lifetime of the application. If the joystick is
+/// disconnected and reconnected, it will get a new ID.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct JoystickID(SDL_JoystickID);
+
+impl JoystickID {
+    pub fn from_raw(id: SDL_JoystickID) -> JoystickID {
+        JoystickID(id)
+    }
+}
 
 #[derive(Clone)]
-pub struct Gamepad(#[allow(dead_code)] Rc<GamepadInner>);
+pub struct Gamepad(Rc<GamepadInner>);
 
 impl PartialEq for Gamepad {
     fn eq(&self, other: &Self) -> bool {
@@ -18,11 +34,11 @@ impl fmt::Debug for Gamepad {
 }
 
 struct GamepadInner {
-    handle: *mut SDL_GameController,
+    handle: *mut SDL_Gamepad,
 }
 
 impl Gamepad {
-    pub fn from_raw(raw: *mut SDL_GameController) -> Gamepad {
+    pub fn from_raw(raw: *mut SDL_Gamepad) -> Gamepad {
         Gamepad(Rc::new(GamepadInner { handle: raw }))
     }
 }
@@ -30,7 +46,7 @@ impl Gamepad {
 impl Drop for GamepadInner {
     fn drop(&mut self) {
         unsafe {
-            SDL_GameControllerClose(self.handle);
+            SDL_CloseGamepad(self.handle);
         }
     }
 }
@@ -55,23 +71,23 @@ pub enum GamepadButton {
 }
 
 impl GamepadButton {
-    pub(crate) fn from_raw(raw: SDL_GameControllerButton) -> Option<GamepadButton> {
+    pub(crate) fn from_raw(raw: SDL_GamepadButton) -> Option<GamepadButton> {
         match raw {
-            SDL_CONTROLLER_BUTTON_A => Some(GamepadButton::A),
-            SDL_CONTROLLER_BUTTON_B => Some(GamepadButton::B),
-            SDL_CONTROLLER_BUTTON_X => Some(GamepadButton::X),
-            SDL_CONTROLLER_BUTTON_Y => Some(GamepadButton::Y),
-            SDL_CONTROLLER_BUTTON_BACK => Some(GamepadButton::Back),
-            SDL_CONTROLLER_BUTTON_GUIDE => Some(GamepadButton::Guide),
-            SDL_CONTROLLER_BUTTON_START => Some(GamepadButton::Start),
-            SDL_CONTROLLER_BUTTON_LEFTSTICK => Some(GamepadButton::LeftStick),
-            SDL_CONTROLLER_BUTTON_RIGHTSTICK => Some(GamepadButton::RightStick),
-            SDL_CONTROLLER_BUTTON_LEFTSHOULDER => Some(GamepadButton::LeftShoulder),
-            SDL_CONTROLLER_BUTTON_RIGHTSHOULDER => Some(GamepadButton::RightShoulder),
-            SDL_CONTROLLER_BUTTON_DPAD_UP => Some(GamepadButton::Up),
-            SDL_CONTROLLER_BUTTON_DPAD_DOWN => Some(GamepadButton::Down),
-            SDL_CONTROLLER_BUTTON_DPAD_LEFT => Some(GamepadButton::Left),
-            SDL_CONTROLLER_BUTTON_DPAD_RIGHT => Some(GamepadButton::Right),
+            SDL_GAMEPAD_BUTTON_SOUTH => Some(GamepadButton::A),
+            SDL_GAMEPAD_BUTTON_EAST => Some(GamepadButton::B),
+            SDL_GAMEPAD_BUTTON_WEST => Some(GamepadButton::X),
+            SDL_GAMEPAD_BUTTON_NORTH => Some(GamepadButton::Y),
+            SDL_GAMEPAD_BUTTON_BACK => Some(GamepadButton::Back),
+            SDL_GAMEPAD_BUTTON_GUIDE => Some(GamepadButton::Guide),
+            SDL_GAMEPAD_BUTTON_START => Some(GamepadButton::Start),
+            SDL_GAMEPAD_BUTTON_LEFT_STICK => Some(GamepadButton::LeftStick),
+            SDL_GAMEPAD_BUTTON_RIGHT_STICK => Some(GamepadButton::RightStick),
+            SDL_GAMEPAD_BUTTON_LEFT_SHOULDER => Some(GamepadButton::LeftShoulder),
+            SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER => Some(GamepadButton::RightShoulder),
+            SDL_GAMEPAD_BUTTON_DPAD_UP => Some(GamepadButton::Up),
+            SDL_GAMEPAD_BUTTON_DPAD_DOWN => Some(GamepadButton::Down),
+            SDL_GAMEPAD_BUTTON_DPAD_LEFT => Some(GamepadButton::Left),
+            SDL_GAMEPAD_BUTTON_DPAD_RIGHT => Some(GamepadButton::Right),
             _ => None,
         }
     }
@@ -88,14 +104,14 @@ pub enum GamepadAxis {
 }
 
 impl GamepadAxis {
-    pub(crate) fn from_raw(raw: SDL_GameControllerAxis) -> Option<GamepadAxis> {
+    pub(crate) fn from_raw(raw: SDL_GamepadAxis) -> Option<GamepadAxis> {
         match raw {
-            SDL_CONTROLLER_AXIS_LEFTX => Some(GamepadAxis::LeftStickX),
-            SDL_CONTROLLER_AXIS_LEFTY => Some(GamepadAxis::LeftStickY),
-            SDL_CONTROLLER_AXIS_RIGHTX => Some(GamepadAxis::RightStickX),
-            SDL_CONTROLLER_AXIS_RIGHTY => Some(GamepadAxis::RightStickY),
-            SDL_CONTROLLER_AXIS_TRIGGERLEFT => Some(GamepadAxis::LeftTrigger),
-            SDL_CONTROLLER_AXIS_TRIGGERRIGHT => Some(GamepadAxis::RightTrigger),
+            SDL_GAMEPAD_AXIS_LEFTX => Some(GamepadAxis::LeftStickX),
+            SDL_GAMEPAD_AXIS_LEFTY => Some(GamepadAxis::LeftStickY),
+            SDL_GAMEPAD_AXIS_RIGHTX => Some(GamepadAxis::RightStickX),
+            SDL_GAMEPAD_AXIS_RIGHTY => Some(GamepadAxis::RightStickY),
+            SDL_GAMEPAD_AXIS_LEFT_TRIGGER => Some(GamepadAxis::LeftTrigger),
+            SDL_GAMEPAD_AXIS_RIGHT_TRIGGER => Some(GamepadAxis::RightTrigger),
             _ => None,
         }
     }

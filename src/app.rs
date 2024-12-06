@@ -1,5 +1,3 @@
-use fermium::prelude::SDL_QUIT;
-
 use crate::graphics::Graphics;
 use crate::input::{Event, Input};
 use crate::time::Timer;
@@ -69,17 +67,13 @@ impl App {
 
     pub fn handle_events(&mut self, event_handler: &mut impl EventHandler) {
         while let Some(event) = self.window.next_event() {
-            unsafe {
-                if event.type_ == SDL_QUIT {
-                    self.is_running = false;
-                }
+            if let Event::Quit = event {
+                self.is_running = false;
             }
 
-            if let Some(event) = crate::input::Event::try_from_sdl_event(&event) {
-                self.input.event(&event);
+            self.input.event(&event);
 
-                event_handler.event(self, event);
-            }
+            event_handler.event(self, event);
         }
     }
 }
